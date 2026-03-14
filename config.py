@@ -45,7 +45,7 @@ class Settings:
     claude_model: str = os.getenv("JOB_AGENT_CLAUDE_MODEL", "claude-sonnet-4-6")
     haiku_model: str = os.getenv("JOB_AGENT_HAIKU_MODEL", "claude-haiku-4-5-20251001")
     stage1_threshold: float = float(os.getenv("JOB_AGENT_STAGE1_THRESHOLD", "0.35"))
-    top_n_output: int = int(os.getenv("JOB_AGENT_TOP_N_OUTPUT", "100"))
+    top_n_output: int = int(os.getenv("JOB_AGENT_TOP_N_OUTPUT", "300"))
 
 
 SETTINGS = Settings()
