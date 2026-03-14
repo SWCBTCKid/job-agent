@@ -1,0 +1,122 @@
+{
+  "workday": [
+    {
+      "company": "SpaceX",
+      "url": "https://www.spacex.com/careers/",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "CrowdStrike",
+      "url": "https://crowdstrike.wd5.myworkdayjobs.com/crowdstrikecareers",
+      "tier_boost": 1.1
+    },
+    {
+      "company": "Wisk Aero",
+      "url": "https://wisk.wd1.myworkdayjobs.com/Wisk_Careers",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "Nvidia",
+      "url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+      "tier_boost": 1.2
+    },
+    {
+      "company": "Microsoft",
+      "url": "https://microsoft.wd1.myworkdayjobs.com/msftcareers",
+      "tier_boost": 1.0
+    }
+  ],
+  "wellfound": [
+    {
+      "company": "Wellfound",
+      "url": "https://wellfound.com/jobs",
+      "tier_boost": 1.0
+    }
+  ],
+  "yc": [
+    {
+      "company": "YC",
+      "url": "https://www.ycombinator.com/jobs",
+      "tier_boost": 1.0
+    }
+  ],
+  "pragmatic": [
+    {
+      "company": "PragmaticEngineer",
+      "url": "https://jobs.pragmaticengineer.com/jobs.rss",
+      "tier_boost": 1.0
+    }
+  ],
+  "icims": [
+    {"company": "Joby Aviation", "base_url": "https://careers-jobyaviation.icims.com", "tier_boost": 1.1}
+  ],
+  "theirstack": [
+    {
+      "label": "AI chip companies without ATS coverage",
+      "company_domains": ["groq.com", "rivos.com", "enfabrica.net", "amperecomputing.com", "esperanto.ai", "recogni.com"],
+      "job_title_pattern_or": "engineer|software|platform|infrastructure|compiler|runtime|silicon|hardware",
+      "job_location_pattern_or": "San Francisco|Bay Area|Mountain View|Palo Alto|Sunnyvale|Fremont|San Jose|Oakland|Santa Clara|Cupertino",
+      "max_age_days": 14,
+      "limit": 25,
+      "tier_boost": 1.1
+    },
+    {
+      "label": "AV/Robotics companies without ATS coverage",
+      "company_domains": ["covariant.ai", "gatik.ai", "pony.ai", "getcruise.com"],
+      "job_title_pattern_or": "engineer|software|platform|infrastructure|robotics|autonomy",
+      "job_location_pattern_or": "San Francisco|Bay Area|Mountain View|Palo Alto|Sunnyvale|Fremont|San Jose|Oakland|Berkeley|Emeryville|Redwood City",
+      "max_age_days": 14,
+      "limit": 25,
+      "tier_boost": 1.1
+    },
+    {
+      "label": "All target companies broad sweep",
+      "company_domains": [
+        "anduril.com", "shield.ai", "aurora.tech", "zoox.com", "nuro.ai",
+        "waymo.com", "kodiak.ai", "figure.ai", "flyzipline.com",
+        "nimble.ai", "intrinsic.ai", "serverobotics.com",
+        "physicalintelligence.company", "jobyaviation.com", "wisk.aero",
+        "tenstorrent.com", "sambanova.ai", "d-matrix.ai", "etched.com",
+        "groq.com", "rivos.com", "enfabrica.net", "amperecomputing.com"
+      ],
+      "job_title_pattern_or": "engineer|software|platform|infrastructure|autonomy",
+      "max_age_days": 7,
+      "limit": 50,
+      "tier_boost": 1.0
+    }
+  ],
+  "serp": [
+    {
+      "query": "software engineer autonomous vehicle Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "week",
+      "tier_boost": 1.0
+    },
+    {
+      "query": "platform engineer robotics San Francisco",
+      "location": "San Francisco, California, United States",
+      "date_posted": "week",
+      "tier_boost": 1.0
+    },
+    {
+      "query": "infrastructure engineer Covariant OR Gatik OR Pony.ai OR Cruise",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.1
+    }
+  ],
+  "linkedin": [],
+  "ashby": [
+    {"company": "Confluent",         "slug": "confluent",     "tier_boost": 1.2},
+    {"company": "Skydio",            "slug": "skydio",        "tier_boost": 1.1},
+    {"company": "Notion",            "slug": "notion",        "tier_boost": 1.0},
+    {"company": "Modal",             "slug": "modal",         "tier_boost": 1.0},
+    {"company": "Anyscale",          "slug": "anyscale",      "tier_boost": 1.1},
+    {"company": "Replit",            "slug": "replit",        "tier_boost": 1.0},
+    {"company": "Render",            "slug": "render",        "tier_boost": 1.0},
+    {"company": "Linear",            "slug": "linear",        "tier_boost": 1.0},
+    {"company": "Prefect",              "slug": "prefect",              "tier_boost": 1.0},
+    {"company": "Physical Intelligence","slug": "physicalintelligence",  "tier_boost": 1.2},
+    {"company": "Serve Robotics",       "slug": "serverobotics",         "tier_boost": 1.0}
+  ]
+}

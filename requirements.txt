@@ -1,0 +1,4 @@
+# Optional runtime dependencies. Core flow runs with stdlib fallback.
+httpx>=0.27.0
+beautifulsoup4>=4.12.0
+sentence-transformers>=3.0.0

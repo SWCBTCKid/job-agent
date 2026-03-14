@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Personal data — users supply their own
+data/
+
+# Output & state (per-user, not committed)
+output/
+state/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
