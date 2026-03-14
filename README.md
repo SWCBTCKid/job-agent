@@ -46,6 +46,37 @@ python main.py --resume data/resume.txt --dry-run --json
 
 ### Profile management
 
+A profile defines which companies to target and how to score them. Each profile lives in `profiles/<profile_id>/` and contains three files:
+
+```
+profiles/my_profile/
+  companies.json      # ATS-targeted companies (Greenhouse, Lever, Ashby)
+  sources.json        # Non-ATS sources (Workday, TheirStack, SerpAPI, etc.)
+  domain_tiers.json   # Domain keyword scoring tiers for Stage 1
+```
+
+**Creating a new profile:**
+```bash
+# 1. Copy the default profile as a starting point
+cp -r profiles/gpu_autonomous profiles/my_profile
+
+# 2. Edit companies.json — each entry needs name, ats, slug, tier_boost
+#    Find the slug by hitting the ATS URL directly:
+#      Greenhouse: https://api.greenhouse.io/v1/boards/{slug}/jobs
+#      Lever:      https://api.lever.co/v0/postings/{slug}?mode=json
+#      Ashby:      https://api.ashbyhq.com/posting-api/job-board/{slug}
+
+# 3. Edit domain_tiers.json — add keywords that describe your target domain
+#    tier1 = best match (1.0), tier2 = good (0.7), tier3 = weak (0.4)
+
+# 4. Import it into the DB
+python main.py --import-profile my_profile
+
+# 5. Run with it
+python main.py --resume data/resume.txt --profile my_profile
+```
+
+**Other profile commands:**
 ```bash
 # List all loaded profiles
 python main.py --list-profiles
@@ -58,9 +89,6 @@ python main.py --list-resumes
 
 # Add a company to a profile
 python main.py --add-company
-
-# Import a profile from JSON
-python main.py --import-profile <path>
 ```
 
 ### Ranker (normally launched automatically by main.py)
