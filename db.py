@@ -419,6 +419,7 @@ class JobDB:
             f"""
             SELECT * FROM {table}
             WHERE stage1_score >= ?
+            AND claude_score IS NULL
             AND description IS NOT NULL AND description != ''
             ORDER BY stage1_score DESC
             """,

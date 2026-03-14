@@ -221,6 +221,17 @@ def _write_output(resume_id: str, results: list[dict]) -> Path:
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     out_path = OUTPUT_DIR / f"results_{resume_id}_{ts}.json"
     out_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    txt_path = OUTPUT_DIR / f"results_{resume_id}_{ts}.txt"
+    lines = []
+    for r in results:
+        lines.append(f"{r['rank']:>3}. [{r.get('claude_score', 0):.1f}] {r.get('company', '')} — {r.get('title', '')}")
+        lines.append(f"      Level: {r.get('level_fit', '?')} | Tier: {r.get('tier', '?')}")
+        lines.append(f"      {r.get('match_reason', '')}")
+        lines.append(f"      URL: {r.get('url', '')}")
+        lines.append("")
+    txt_path.write_text("\n".join(lines), encoding="utf-8")
+
     return out_path
 
 
