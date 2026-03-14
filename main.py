@@ -301,6 +301,69 @@ def cmd_list_resumes(db: JobDB) -> None:
     print()
 
 
+def _company_health_report(
+    profile_companies: list[str],
+    raw_postings: list,
+    after_filters: list,
+    stage1_scored: list,
+    threshold: float,
+) -> None:
+    """
+    For every targeted company in the profile, report how many jobs survived
+    each pipeline stage. Warn loudly for zero-yield at any stage.
+    """
+    from collections import defaultdict
+
+    raw_counts:    dict[str, int] = defaultdict(int)
+    filter_counts: dict[str, int] = defaultdict(int)
+    stage1_counts: dict[str, int] = defaultdict(int)
+    stage1_best:   dict[str, float] = defaultdict(float)
+
+    for p in raw_postings:
+        raw_counts[p.company] += 1
+    for p in after_filters:
+        filter_counts[p.company] += 1
+    for p in stage1_scored:
+        stage1_counts[p.company] += 1
+        stage1_best[p.company] = max(stage1_best[p.company], p.stage1_score or 0)
+
+    warnings = []
+    rows = []
+    for company in sorted(profile_companies):
+        raw   = raw_counts.get(company, 0)
+        filt  = filter_counts.get(company, 0)
+        s1    = stage1_counts.get(company, 0)
+        best  = stage1_best.get(company, 0.0)
+        above = sum(1 for p in stage1_scored if p.company == company and (p.stage1_score or 0) >= threshold)
+
+        flag = ""
+        if raw == 0:
+            flag = "NO JOBS SCRAPED"
+            warnings.append(f"  WARNING {company}: 0 jobs scraped — check slug/ATS")
+        elif filt == 0:
+            flag = "ALL DROPPED BY FILTERS"
+            warnings.append(f"  WARNING {company}: {raw} scraped but 0 survived hard filters — check location/role filter")
+        elif above == 0:
+            flag = f"BEST STAGE1={best:.3f}, ALL BELOW THRESHOLD"
+            warnings.append(f"  WARNING {company}: {filt} survived filters but 0 above Stage 1 threshold (best={best:.3f})")
+
+        rows.append((company, raw, filt, above, best, flag))
+
+    print(f"\n{'Company':<35} {'Raw':>5} {'Filt':>5} {'S1+':>5} {'BestS1':>7}  {'Issues'}")
+    print("-" * 90)
+    for company, raw, filt, above, best, flag in rows:
+        print(f"  {company:<33} {raw:>5} {filt:>5} {above:>5} {best:>7.3f}  {flag}")
+
+    if warnings:
+        print(f"\n{'='*60}")
+        print("PIPELINE WARNINGS — targeted companies with zero yield:")
+        for w in warnings:
+            print(w)
+            LOGGER.warning(w.strip())
+        print('='*60)
+    print()
+
+
 def build_scrapers(db: JobDB, profile_id: str) -> list:
     """Build scraper list from DB profile — reads profile_companies + profile_sources."""
     companies = db.get_profile_companies(profile_id)
@@ -531,7 +594,11 @@ async def run_resume_flow(
         if (p.stage1_score or 0) >= SETTINGS.stage1_threshold
     ]
     print(f"Stage 1 scored: {len(stage1_scored)}  |  "
-          f"Above threshold ({SETTINGS.stage1_threshold}): {len(above_threshold)}")
+          f"Above threshold ({SETTINGS.stage1_threshold}): {len(above_threshold)})")
+
+    # Per-company health report — surfaces silent zero-yield failures
+    profile_companies = [c["name"] for c in db.get_profile_companies(profile_id)]
+    _company_health_report(profile_companies, raw_postings, after_role, stage1_scored, SETTINGS.stage1_threshold)
 
     if not above_threshold:
         print("No candidates above threshold — nothing to rank.")
