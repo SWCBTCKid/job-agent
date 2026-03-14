@@ -20,6 +20,7 @@ class WorkdayScraper(BaseScraper):
 
     def __init__(self, seeds: list[dict] | None = None):
         self.seeds = seeds or []
+        self.fetch_errors: list[str] = []  # populated on per-seed failures
 
     async def fetch(self) -> list[JobPosting]:
         postings: list[JobPosting] = []
@@ -57,6 +58,7 @@ class WorkdayScraper(BaseScraper):
                     continue
                 except Exception as exc:
                     LOGGER.warning("Workday API fetch failed for %s (%s): %s", company, api_url, exc)
+                    self.fetch_errors.append(f"{company}: {exc}")
 
             if not page_url:
                 continue
@@ -64,6 +66,7 @@ class WorkdayScraper(BaseScraper):
                 html = await self._fetch_text_async(page_url)
             except Exception as exc:
                 LOGGER.warning("Workday page fetch failed for %s (%s): %s", company, page_url, exc)
+                self.fetch_errors.append(f"{company}: {exc}")
                 continue
 
             for match in re.finditer(r'href="([^"]*(?:/job/|/jobs/)[^"]+)"', html, re.IGNORECASE):

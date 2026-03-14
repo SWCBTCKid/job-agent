@@ -557,6 +557,15 @@ async def run_resume_flow(
     raw_postings = await scrape_all(scrapers)
     print(f"Scraped: {len(raw_postings)} raw postings")
 
+    # Surface any per-seed scraper failures (e.g. Workday 500s)
+    from scrapers.workday import WorkdayScraper
+    for s in scrapers:
+        if isinstance(s, WorkdayScraper) and s.fetch_errors:
+            for err in s.fetch_errors:
+                msg = f"WARNING Workday fetch failed — {err}"
+                print(f"  {msg}")
+                LOGGER.warning(msg)
+
     # Hard filters (same logic as legacy flow)
     after_citizenship = [
         p for p in raw_postings
