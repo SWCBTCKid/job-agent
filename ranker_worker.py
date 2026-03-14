@@ -38,7 +38,7 @@ LOGGER = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
 
-SONNET_MODEL = SETTINGS.claude_model
+HAIKU_MODEL = SETTINGS.haiku_model
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 VALID_LEVELS = {"senior", "mid", "staff", "too_junior", "too_senior"}
 
@@ -76,11 +76,11 @@ Scoring guide (claude_score):
 0–3   Poor match — wrong domain, wrong seniority, or missing critical skills.
 
 level_fit:
-  senior       = senior IC role, right fit for candidate
-  mid          = mid-level, candidate slightly overqualified
-  staff        = staff/principal — likely too senior for candidate
-  too_junior   = junior/intern/entry-level
-  too_senior   = director/VP/C-level/manager
+  mid          = mid-level IC role — primary target level, highest weight
+  senior       = senior IC role — also a target level, weighted slightly below mid
+  staff        = staff/principal — above target, apply moderate penalty
+  too_junior   = junior/intern/entry-level — below target
+  too_senior   = director/VP/C-level/manager — above target
 
 risk:
   low    = straightforward fit, no red flags
@@ -161,7 +161,7 @@ async def _call_claude(
     max_retries: int = 4,
 ) -> dict | None:
     body = {
-        "model": SONNET_MODEL,
+        "model": HAIKU_MODEL,
         "max_tokens": 400,
         "temperature": 0,
         "system": _SYSTEM,

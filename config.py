@@ -56,8 +56,8 @@ HARD_EMBEDDED = [
 ]
 
 LEVEL_WEIGHTS = {
-    "senior": 1.0,
-    "mid": 0.9,
+    "mid": 1.0,
+    "senior": 0.9,
     "staff": 0.5,
     "too_junior": 0.1,
     "too_senior": 0.3,
