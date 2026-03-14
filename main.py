@@ -62,6 +62,12 @@ def is_bay_area(posting: JobPosting) -> bool:
         "menlo park",
         "cupertino",
         "south san francisco",
+        "foster city",
+        "hayward",
+        "emeryville",
+        "burlingame",
+        "san carlos",
+        "belmont",
     ]
     return any(token in text for token in bay_area_tokens)
 
@@ -508,8 +514,12 @@ async def run_resume_flow(
         p.competition = classify_competition(p)
 
     # Stage 1: embed all filtered postings against this resume
+    domain_tiers_path = PROFILES_DIR / profile_id / "domain_tiers.json"
+    domain_tiers = json.loads(domain_tiers_path.read_text(encoding="utf-8")) if domain_tiers_path.exists() else None
+    if domain_tiers:
+        LOGGER.info("Loaded domain tiers from profiles/%s/domain_tiers.json", profile_id)
     print("Running Stage 1 embedding...")
-    stage1_scored = stage1_select(after_role, resume_text, len(after_role))  # score all, no top-N cut
+    stage1_scored = stage1_select(after_role, resume_text, len(after_role), domain_tiers=domain_tiers)  # score all, no top-N cut
     db.save_resume_stage1_scores(resume_id, stage1_scored)
 
     # Store all scored candidates in resume table

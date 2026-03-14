@@ -85,29 +85,36 @@ def _skill_overlap(jd_text: str) -> float:
 # Domain score — how well does the JD domain match target work areas
 # ---------------------------------------------------------------------------
 
-_DOMAIN_TIER1 = re.compile(
-    r"observability platform|security enforcement|authorization system|safety.critical|"
-    r"fleet management|distributed systems|control plane|production engineering|"
-    r"platform infrastructure|site reliability|security observability",
-    re.IGNORECASE,
-)
-_DOMAIN_TIER2 = re.compile(
-    r"\binfrastructure\b|developer tooling|backend systems|cloud infrastructure|"
-    r"\bdevops\b|platform engineering|developer productivity",
-    re.IGNORECASE,
-)
-_DOMAIN_TIER3 = re.compile(
-    r"machine learning infrastructure|mlops|ml platform|ai infrastructure",
-    re.IGNORECASE,
-)
+def _compile_domain_patterns(tiers: dict[str, list[str]]) -> tuple[re.Pattern, re.Pattern, re.Pattern]:
+    def _pat(terms: list[str]) -> re.Pattern:
+        return re.compile("|".join(re.escape(t) for t in terms), re.IGNORECASE)
+    return _pat(tiers.get("tier1", [])), _pat(tiers.get("tier2", [])), _pat(tiers.get("tier3", []))
 
 
-def _domain_score(jd_text: str) -> float:
-    if _DOMAIN_TIER1.search(jd_text):
+# Defaults — overridden when a profile passes domain_tiers to stage1_select
+_DEFAULT_DOMAIN_TIERS: dict[str, list[str]] = {
+    "tier1": [
+        "observability platform", "security enforcement", "authorization system",
+        "safety.critical", "fleet management", "distributed systems", "control plane",
+        "production engineering", "platform infrastructure", "site reliability",
+        "security observability",
+    ],
+    "tier2": [
+        "infrastructure", "developer tooling", "backend systems", "cloud infrastructure",
+        "devops", "platform engineering", "developer productivity",
+    ],
+    "tier3": ["machine learning infrastructure", "mlops", "ml platform", "ai infrastructure"],
+}
+
+_DOMAIN_TIER1, _DOMAIN_TIER2, _DOMAIN_TIER3 = _compile_domain_patterns(_DEFAULT_DOMAIN_TIERS)
+
+
+def _domain_score(jd_text: str, tier1: re.Pattern = _DOMAIN_TIER1, tier2: re.Pattern = _DOMAIN_TIER2, tier3: re.Pattern = _DOMAIN_TIER3) -> float:
+    if tier1.search(jd_text):
         return 1.0
-    if _DOMAIN_TIER2.search(jd_text):
+    if tier2.search(jd_text):
         return 0.7
-    if _DOMAIN_TIER3.search(jd_text):
+    if tier3.search(jd_text):
         return 0.4
     return 0.1
 
@@ -331,13 +338,15 @@ def _score_similarity(
 # Stage 1 selection — multi-signal scorer
 # ---------------------------------------------------------------------------
 
-def stage1_select(postings: list[JobPosting], resume_text: str, top_n: int = 30) -> list[JobPosting]:
+def stage1_select(postings: list[JobPosting], resume_text: str, top_n: int = 30, domain_tiers: dict | None = None) -> list[JobPosting]:
     """Stage 1 selection using multi-signal scoring.
 
     score = max(0, base × role_multiplier − anti_pattern_penalty)
     base  = embedding_sim×0.45 + skill_overlap×0.25 + domain_score×0.20 + freshness×0.10
     """
     expanded_resume = _expand_resume(resume_text)
+
+    t1, t2, t3 = _compile_domain_patterns(domain_tiers) if domain_tiers else (_DOMAIN_TIER1, _DOMAIN_TIER2, _DOMAIN_TIER3)
 
     embedding_map: dict[str, list[float]] | None = None
     texts = [expanded_resume] + [p.description for p in postings]
@@ -350,7 +359,7 @@ def stage1_select(postings: list[JobPosting], resume_text: str, top_n: int = 30)
     for posting in postings:
         embed_sim  = _score_similarity(expanded_resume, posting, embedding_map)
         skill_ov   = _skill_overlap(posting.description)
-        domain_sc  = _domain_score(posting.description)
+        domain_sc  = _domain_score(posting.description, t1, t2, t3)
         fresh      = _freshness_score(posting.age_days)
 
         base_score = (

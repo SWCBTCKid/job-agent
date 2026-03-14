@@ -1,0 +1,44 @@
+{
+  "tier1": [
+    "observability platform",
+    "security enforcement",
+    "authorization system",
+    "safety.critical",
+    "safety critical",
+    "fleet management",
+    "distributed systems",
+    "control plane",
+    "production engineering",
+    "platform infrastructure",
+    "site reliability",
+    "security observability",
+    "autonomous vehicle",
+    "autonomy stack",
+    "onboard systems",
+    "onboard infrastructure",
+    "onboard compute",
+    "AV infrastructure",
+    "embedded systems",
+    "embedded software",
+    "embedded linux",
+    "real-time systems",
+    "vehicle software",
+    "robotics infrastructure",
+    "robot software"
+  ],
+  "tier2": [
+    "infrastructure",
+    "developer tooling",
+    "backend systems",
+    "cloud infrastructure",
+    "devops",
+    "platform engineering",
+    "developer productivity"
+  ],
+  "tier3": [
+    "machine learning infrastructure",
+    "mlops",
+    "ml platform",
+    "ai infrastructure"
+  ]
+}
