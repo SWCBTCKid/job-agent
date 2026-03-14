@@ -40,7 +40,10 @@ class BaseScraper(ABC):
         if value is None:
             return datetime.now(timezone.utc)
         if isinstance(value, (int, float)):
-            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+            ts = float(value)
+            if ts > 1e10:  # Lever returns milliseconds; convert to seconds
+                ts /= 1000.0
+            return datetime.fromtimestamp(ts, tz=timezone.utc)
         text = str(value).strip()
         try:
             if text.endswith("Z"):

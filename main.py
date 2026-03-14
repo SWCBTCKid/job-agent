@@ -341,7 +341,7 @@ async def scrape_all(scrapers: list, alert_cb=None) -> list[JobPosting]:
     for scraper, result in zip(scrapers, results):
         if isinstance(result, Exception):
             msg = f"[JobAgent] Scraper {scraper.__class__.__name__} failed: {result}"
-            LOGGER.exception(msg)
+            LOGGER.error(msg, exc_info=result)
             if alert_cb:
                 await alert_cb(msg)
             continue
