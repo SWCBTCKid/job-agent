@@ -20,7 +20,7 @@ from resume_ingest import ingest_resume
 BASE_DIR = Path(__file__).resolve().parent
 PROFILES_DIR = BASE_DIR / "profiles"
 
-from matcher import rank_postings, stage1_select
+from matcher import rank_postings, stage1_select, ScoringConfig, ORIGINAL_CONFIG, build_scoring_config
 from models import JobPosting
 from notifier import format_digest, send_telegram, send_telegram_safe
 from salary import infer_salary, load_salary_table
@@ -301,6 +301,41 @@ def cmd_list_resumes(db: JobDB) -> None:
     print()
 
 
+def _print_scoring_comparison(
+    haiku_postings: list,
+    orig_postings: list,
+    threshold: float = 0.35,
+) -> None:
+    """Print a side-by-side Stage 1 score comparison: Haiku config vs Original config."""
+    haiku_map = {p.id: p.stage1_score or 0.0 for p in haiku_postings}
+    orig_map  = {p.id: p.stage1_score or 0.0 for p in orig_postings}
+
+    all_ids = set(haiku_map) | set(orig_map)
+    haiku_above = sum(1 for s in haiku_map.values() if s >= threshold)
+    orig_above  = sum(1 for s in orig_map.values()  if s >= threshold)
+
+    deltas = [haiku_map.get(i, 0) - orig_map.get(i, 0) for i in all_ids]
+    avg_delta = sum(deltas) / len(deltas) if deltas else 0.0
+
+    # Top 15 by haiku score with comparison
+    top15 = sorted(haiku_postings, key=lambda p: p.stage1_score or 0.0, reverse=True)[:15]
+
+    print()
+    print("── Stage 1 Config Comparison ─────────────────────────────────────────────")
+    print(f"  Total scored    : {len(all_ids)}")
+    print(f"  Above threshold ({threshold}) — Haiku: {haiku_above}   Original: {orig_above}   Delta: {haiku_above - orig_above:+d}")
+    print(f"  Avg score delta : {avg_delta:+.4f}  (Haiku − Original)")
+    print()
+    print(f"  {'Company':<30} {'Title':<35} {'Haiku':>7} {'Orig':>7} {'Δ':>6}")
+    print("  " + "-" * 86)
+    for p in top15:
+        h = haiku_map.get(p.id, 0.0)
+        o = orig_map.get(p.id, 0.0)
+        delta = h - o
+        print(f"  {p.company:<30} {p.title[:34]:<35} {h:>7.4f} {o:>7.4f} {delta:>+6.3f}")
+    print()
+
+
 def _company_health_report(
     profile_companies: list[str],
     raw_postings: list,
@@ -537,13 +572,15 @@ async def run_resume_flow(
     profile_id: str,
     db: JobDB,
     dry_run: bool = False,
+    force_reingest: bool = False,
+    target_levels: list[str] | None = None,
 ) -> dict:
     """
     MVP resume-driven pipeline — Steps 1 and 2 (sync).
     Step 3 (Claude ranking) is launched as a background subprocess.
     """
     # ── Step 1: Resume ingest ─────────────────────────────────────
-    record = ingest_resume(resume_path, db)
+    record = ingest_resume(resume_path, db, force=force_reingest)
     resume_id = record.id
     resume_text = Path(resume_path).read_text(encoding="utf-8")
 
@@ -585,14 +622,36 @@ async def run_resume_flow(
     for p in after_role:
         p.competition = classify_competition(p)
 
-    # Stage 1: embed all filtered postings against this resume
-    domain_tiers_path = PROFILES_DIR / profile_id / "domain_tiers.json"
-    domain_tiers = json.loads(domain_tiers_path.read_text(encoding="utf-8")) if domain_tiers_path.exists() else None
-    if domain_tiers:
-        LOGGER.info("Loaded domain tiers from profiles/%s/domain_tiers.json", profile_id)
-    print("Running Stage 1 embedding...")
-    stage1_scored = stage1_select(after_role, resume_text, len(after_role), domain_tiers=domain_tiers)  # score all, no top-N cut
-    db.save_resume_stage1_scores(resume_id, stage1_scored)
+    # ── Scoring configs ──────────────────────────────────────────────
+    # Seed original hardcoded config on first run (INSERT OR IGNORE)
+    db.store_scoring_config(
+        ORIGINAL_CONFIG.config_id,
+        ORIGINAL_CONFIG.label,
+        ORIGINAL_CONFIG.source,
+        ORIGINAL_CONFIG.to_dict(),
+    )
+    # Generate Haiku-derived config for this resume
+    haiku_cfg = build_scoring_config(record, target_levels=target_levels)
+    db.store_scoring_config(haiku_cfg.config_id, haiku_cfg.label, haiku_cfg.source, haiku_cfg.to_dict())
+    LOGGER.info("Scoring configs ready — original=%s  haiku=%s", ORIGINAL_CONFIG.config_id, haiku_cfg.config_id)
+
+    # ── Stage 1: run with both configs, store both scores ────────────
+    print("Running Stage 1 — Haiku config...")
+    stage1_haiku = stage1_select(after_role, resume_text, len(after_role), scoring_config=haiku_cfg)
+    db.save_resume_stage1_scores(resume_id, stage1_haiku)
+
+    print("Running Stage 1 — Original config (for comparison)...")
+    # Deep-copy postings so stage1_score fields don't collide between the two runs
+    import copy
+    postings_orig = copy.deepcopy(after_role)
+    stage1_orig = stage1_select(postings_orig, resume_text, len(postings_orig), scoring_config=ORIGINAL_CONFIG)
+    db.save_stage1_score_original(resume_id, stage1_orig)
+
+    # Print comparison summary
+    _print_scoring_comparison(stage1_haiku, stage1_orig, threshold=SETTINGS.stage1_threshold)
+
+    # Use haiku scores as the active stage1_scored for downstream steps
+    stage1_scored = stage1_haiku
 
     # Store all scored candidates in resume table
     for p in stage1_scored:
@@ -659,6 +718,12 @@ def main() -> None:
 
     # MVP resume-driven flow
     parser.add_argument("--resume", metavar="PATH", help="Path to resume (.txt or .md) — triggers MVP flow")
+    parser.add_argument("--reingest", action="store_true",
+                        help="Force re-analysis of resume with Haiku even if already cached")
+    parser.add_argument("--level", nargs="+",
+                        choices=["junior", "mid", "senior", "staff", "manager", "any"],
+                        default=["senior"],
+                        help="Target seniority level(s): e.g. --level senior or --level mid senior")
     parser.add_argument("--profile", metavar="PROFILE_ID", default=None,
                         help="Search profile to use (default: gpu_autonomous)")
 
@@ -721,7 +786,7 @@ def main() -> None:
         profile_id = args.profile or db.get_default_profile_id() or "gpu_autonomous"
         db.close()
         db = JobDB(STATE_DIR / "jobs.db")
-        summary = asyncio.run(run_resume_flow(args.resume, profile_id, db, dry_run=args.dry_run))
+        summary = asyncio.run(run_resume_flow(args.resume, profile_id, db, dry_run=args.dry_run, force_reingest=getattr(args, "reingest", False), target_levels=args.level))
         db.close()
         print(f"\nResume ID:  {summary['resume_id']}")
         print(f"Profile:    {summary['profile_id']}")

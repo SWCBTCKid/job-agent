@@ -77,6 +77,14 @@ class JobDB:
                 is_default INTEGER DEFAULT 0
             );
 
+            CREATE TABLE IF NOT EXISTS scoring_configs (
+                id         TEXT PRIMARY KEY,
+                label      TEXT,
+                source     TEXT,
+                config     TEXT,
+                created_at TEXT
+            );
+
             CREATE TABLE IF NOT EXISTS profile_companies (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 profile_id TEXT REFERENCES search_profiles(id),
@@ -100,7 +108,7 @@ class JobDB:
         self._migrate_schema()
 
     def _migrate_schema(self) -> None:
-        """Add new columns to existing postings table safely, and add missing indexes."""
+        """Add new columns to existing tables safely, and add missing indexes."""
         # Unique index on profile_companies to prevent duplicate seeding
         try:
             self.conn.execute(
@@ -135,6 +143,19 @@ class JobDB:
             except sqlite3.OperationalError:
                 pass  # column already exists
 
+        # Migrate all per-resume postings tables to add stage1_score_original column
+        resume_tables = [
+            row[0] for row in self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'postings_%'"
+            ).fetchall()
+        ]
+        for table in resume_tables:
+            try:
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN stage1_score_original REAL")
+                self.conn.commit()
+            except sqlite3.OperationalError:
+                pass  # column already exists
+
     # ── Resume management ─────────────────────────────────────────────────────
 
     def store_resume(self, resume_id: str, path: str, haiku_result: dict) -> None:
@@ -154,6 +175,11 @@ class JobDB:
                 json.dumps(haiku_result.get("keywords", {})),
             ),
         )
+        self.conn.commit()
+
+    def delete_resume(self, resume_id: str) -> None:
+        """Delete a resume record so it will be re-ingested on next run."""
+        self.conn.execute("DELETE FROM resumes WHERE id=?", (resume_id,))
         self.conn.commit()
 
     def get_resume(self, resume_id: str) -> ResumeRecord | None:
@@ -186,6 +212,39 @@ class JobDB:
             )
             for r in rows
         ]
+
+    # ── Scoring config management ─────────────────────────────────────────────
+
+    def store_scoring_config(self, config_id: str, label: str, source: str, config_dict: dict) -> None:
+        """Store a ScoringConfig as JSON. INSERT OR IGNORE — never overwrites."""
+        now = datetime.now(timezone.utc).isoformat()
+        self.conn.execute(
+            "INSERT OR IGNORE INTO scoring_configs(id, label, source, config, created_at) VALUES(?,?,?,?,?)",
+            (config_id, label, source, json.dumps(config_dict), now),
+        )
+        self.conn.commit()
+
+    def get_scoring_config(self, config_id: str) -> dict | None:
+        """Return a scoring config dict, or None if not found."""
+        row = self.conn.execute(
+            "SELECT config FROM scoring_configs WHERE id=?", (config_id,)
+        ).fetchone()
+        return json.loads(row["config"]) if row else None
+
+    def list_scoring_configs(self) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT id, label, source, created_at FROM scoring_configs ORDER BY created_at"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def save_stage1_score_original(self, resume_id: str, postings: list) -> None:
+        """Persist stage1_score_original (original hardcoded config scores) to per-resume table."""
+        table = self._resume_table(resume_id)
+        self.conn.executemany(
+            f"UPDATE {table} SET stage1_score_original=? WHERE id=?",
+            [(p.stage1_score, p.id) for p in postings],
+        )
+        self.conn.commit()
 
     # ── Search profile management ─────────────────────────────────────────────
 
@@ -350,8 +409,9 @@ class JobDB:
                 applied_at      TEXT,
                 match_reason    TEXT,
                 final_score     REAL,
-                claude_score    REAL,
-                claude_reason   TEXT
+                claude_score          REAL,
+                claude_reason         TEXT,
+                stage1_score_original REAL
             );
             """
         )

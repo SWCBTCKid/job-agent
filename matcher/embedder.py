@@ -9,6 +9,7 @@ import logging
 import math
 import re
 from collections import Counter
+from dataclasses import dataclass, field
 from typing import Any
 import urllib.request
 
@@ -35,10 +36,11 @@ _QUERY_EXPANSION: dict[str, str] = {
 }
 
 
-def _expand_resume(resume_text: str) -> str:
+def _expand_resume(resume_text: str, query_expansion: dict[str, str] | None = None) -> str:
     """Append industry-standard equivalents for internal terminology before embedding."""
+    expansion_map = query_expansion if query_expansion is not None else _QUERY_EXPANSION
     text_lower = resume_text.lower()
-    expansions = [exp for term, exp in _QUERY_EXPANSION.items() if term in text_lower]
+    expansions = [exp for term, exp in expansion_map.items() if term in text_lower]
     if not expansions:
         return resume_text
     return resume_text + "\n\nSKILL TRANSLATIONS: " + ". ".join(expansions)
@@ -75,10 +77,87 @@ _SKILL_PATTERNS: dict[str, re.Pattern] = {
 }
 
 
-def _skill_overlap(jd_text: str) -> float:
-    """Fraction of skill groups (0–6) present in the JD."""
-    matched = sum(1 for pat in _SKILL_PATTERNS.values() if pat.search(jd_text))
-    return matched / len(_SKILL_GROUPS)
+# ---------------------------------------------------------------------------
+# ScoringConfig — per-candidate scoring configuration
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ScoringConfig:
+    """All per-candidate Stage 1 scoring parameters in one place.
+
+    Two flavours:
+      source="hardcoded"  — the original hand-tuned config (Sodiq/Meta baseline)
+      source="haiku"      — auto-generated from a resume by Haiku at ingest time
+
+    skill_groups patterns are treated as raw regex when raw_skill_regex=True
+    (original config) or as literal strings that get re.escaped (haiku config).
+    """
+    config_id:       str
+    label:           str
+    source:          str                         # "hardcoded" | "haiku"
+    query_expansion: dict[str, str]              # internal term → industry keywords
+    domain_tiers:    dict[str, list[str]]        # tier1 / tier2 / tier3 keyword lists
+    skill_groups:    dict[str, list[str]]        # group_name → keyword patterns
+    raw_skill_regex: bool       = True            # False → re.escape patterns before compile
+    target_levels:   list[str]  = field(default_factory=lambda: ["senior"])
+    # valid values: "junior" | "mid" | "senior" | "staff" | "manager" | "any"
+
+    def to_dict(self) -> dict:
+        return {
+            "config_id":       self.config_id,
+            "label":           self.label,
+            "source":          self.source,
+            "query_expansion": self.query_expansion,
+            "domain_tiers":    self.domain_tiers,
+            "skill_groups":    self.skill_groups,
+            "raw_skill_regex": self.raw_skill_regex,
+            "target_levels":   self.target_levels,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "ScoringConfig":
+        return ScoringConfig(
+            config_id=d["config_id"],
+            label=d["label"],
+            source=d["source"],
+            query_expansion=d.get("query_expansion", {}),
+            domain_tiers=d.get("domain_tiers", {}),
+            skill_groups=d.get("skill_groups", {}),
+            raw_skill_regex=d.get("raw_skill_regex", True),
+            target_levels=d.get("target_levels", ["senior"]),
+        )
+
+
+
+
+def _skill_overlap(
+    jd_text: str,
+    skill_groups: dict[str, list[str]] | None = None,
+    raw_regex: bool = True,
+) -> float:
+    """Fraction of skill groups present in the JD.
+
+    Uses pre-compiled _SKILL_PATTERNS when skill_groups is None (original config fast path).
+    Otherwise compiles patterns from skill_groups — escaping literals when raw_regex=False.
+    """
+    if skill_groups is None:
+        matched = sum(1 for pat in _SKILL_PATTERNS.values() if pat.search(jd_text))
+        return matched / len(_SKILL_GROUPS)
+
+    if not skill_groups:
+        return 0.0
+
+    matched = 0
+    for patterns in skill_groups.values():
+        if not patterns:
+            continue
+        if raw_regex:
+            compiled = re.compile("|".join(patterns), re.IGNORECASE)
+        else:
+            compiled = re.compile("|".join(re.escape(p) for p in patterns), re.IGNORECASE)
+        if compiled.search(jd_text):
+            matched += 1
+    return matched / len(skill_groups)
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +186,102 @@ _DEFAULT_DOMAIN_TIERS: dict[str, list[str]] = {
 }
 
 _DOMAIN_TIER1, _DOMAIN_TIER2, _DOMAIN_TIER3 = _compile_domain_patterns(_DEFAULT_DOMAIN_TIERS)
+
+
+# ---------------------------------------------------------------------------
+# ORIGINAL_CONFIG, auto-bucketing, and build_scoring_config
+# (defined here — after _DEFAULT_DOMAIN_TIERS and _SKILL_GROUPS are in scope)
+# ---------------------------------------------------------------------------
+
+# Original hardcoded config — Sodiq/Meta baseline, stored in DB for comparison
+ORIGINAL_CONFIG = ScoringConfig(
+    config_id="original",
+    label="Original (hardcoded v1, Sodiq/Meta)",
+    source="hardcoded",
+    query_expansion=dict(_QUERY_EXPANSION),
+    domain_tiers={k: list(v) for k, v in _DEFAULT_DOMAIN_TIERS.items()},
+    skill_groups={k: list(v) for k, v in _SKILL_GROUPS.items()},
+    raw_skill_regex=True,
+    target_levels=["senior"],
+)
+
+# Bucket map for auto-classifying Haiku-extracted skills into groups
+_BUCKET_MAP: list[tuple[str, list[str]]] = [
+    ("languages",   ["python", "go", "golang", "java", "c++", "cpp", "rust", "scala",
+                     "kotlin", "swift", "ruby", "javascript", "typescript", "php", "elixir"]),
+    ("systems",     ["linux", "unix", "embedded", "kernel", "rtos", "systems programming",
+                     "low-level", "operating system", "hardware-in-the-loop", "hil",
+                     "safety-critical", "real-time", "firmware"]),
+    ("distributed", ["distributed", "kubernetes", "k8s", "docker", "microservices", "kafka",
+                     "grpc", "service mesh", "etcd", "zookeeper", "thrift", "rpc",
+                     "container orchestration", "over-the-air", "ota", "automated rollout",
+                     "automated deployment", "ci/cd", "continuous delivery", "configuration management",
+                     "chef", "ansible", "puppet", "conveyor", "tupperware"]),
+    ("reliability", ["observability", "monitoring", "alerting", "sre", "on-call", "incident",
+                     "reliability", "high availability", "site reliability"]),
+    ("security",    ["security", "authorization", "authentication", "access control", "iam",
+                     "zero trust", "acl", "policy enforcement", "packet analysis", "wireshark",
+                     "network analysis", "intrusion", "vulnerability"]),
+    ("scale",       ["infrastructure", "platform", "production", "fleet", "large-scale",
+                     "hyperscale", "cloud", "distributed systems"]),
+]
+
+
+def _auto_bucket_skills(skills: list[str]) -> dict[str, list[str]]:
+    """Assign Haiku-extracted skill strings into skill groups for Stage 1 matching."""
+    groups: dict[str, list[str]] = {}
+    unmatched: list[str] = []
+    for skill in skills:
+        skill_lower = skill.lower()
+        placed = False
+        for bucket, keywords in _BUCKET_MAP:
+            if any(kw in skill_lower for kw in keywords):
+                groups.setdefault(bucket, []).append(skill)
+                placed = True
+                break
+        if not placed:
+            unmatched.append(skill)
+    if unmatched:
+        groups["other"] = unmatched
+    return groups if groups else {"other": skills}
+
+
+def build_scoring_config(record: "ResumeRecord", target_levels: list[str] | None = None) -> ScoringConfig:  # type: ignore[name-defined]
+    """Generate a per-candidate ScoringConfig from a Haiku-analysed ResumeRecord.
+
+    domain_tiers.tier1  = candidate's own target domains (from Haiku)
+    domain_tiers.tier2  = universal infra/backend fallback terms
+    domain_tiers.tier3  = ML/data terms (lowest signal for most IC engineers)
+    query_expansion     = internal terminology translations (from Haiku)
+    skill_groups        = Haiku skills auto-bucketed into groups
+    """
+    kw          = record.keywords
+    terminology = kw.get("terminology", {})
+    domains     = kw.get("domains", [])
+    skills      = kw.get("skills", [])
+
+    domain_tiers: dict[str, list[str]] = {
+        "tier1": domains,
+        "tier2": [
+            "infrastructure", "backend", "platform", "developer tooling",
+            "cloud infrastructure", "devops", "developer productivity", "backend systems",
+        ],
+        "tier3": [
+            "machine learning infrastructure", "mlops", "ml platform",
+            "ai infrastructure", "data engineering",
+        ],
+    }
+
+    return ScoringConfig(
+        config_id=record.id,
+        label=f"Haiku:{record.id}",
+        source="haiku",
+        query_expansion=terminology,
+        domain_tiers=domain_tiers,
+        skill_groups=_auto_bucket_skills(skills),
+        raw_skill_regex=False,   # Haiku strings get re.escaped before compile
+        target_levels=target_levels or ["senior"],
+    )
 
 
 def _domain_score(jd_text: str, tier1: re.Pattern = _DOMAIN_TIER1, tier2: re.Pattern = _DOMAIN_TIER2, tier3: re.Pattern = _DOMAIN_TIER3) -> float:
@@ -156,8 +331,31 @@ _ROLE_EM = re.compile(
 _ROLE_TL = re.compile(r"\btech(nical)? lead\b", re.IGNORECASE)
 _ROLE_MANAGER_WORD = re.compile(r"\bmanager\b", re.IGNORECASE)
 
+# Level classification patterns — order matters, checked top to bottom
+_LEVEL_JUNIOR_RE  = re.compile(r"\b(junior|associate|entry.level|new\s*grad|intern|apprentice)\b", re.IGNORECASE)
+_LEVEL_STAFF_RE   = re.compile(r"\b(staff|principal|distinguished|fellow|architect)\b", re.IGNORECASE)
+_LEVEL_MANAGER_RE = re.compile(
+    r"\b(engineering manager|director of engineering|vp of engineering|"
+    r"head of engineering|director|vp)\b",
+    re.IGNORECASE,
+)
+_LEVEL_SENIOR_RE  = re.compile(r"\bsenior\b", re.IGNORECASE)
 
-def _role_multiplier(title: str) -> float:
+
+def _classify_level(title: str) -> str:
+    """Assign a title to exactly one level bucket."""
+    if _LEVEL_JUNIOR_RE.search(title):
+        return "junior"
+    if _LEVEL_STAFF_RE.search(title):
+        return "staff"
+    if _LEVEL_MANAGER_RE.search(title):
+        return "manager"
+    if _LEVEL_SENIOR_RE.search(title):
+        return "senior"
+    return "mid"
+
+
+def _role_multiplier(title: str, target_levels: list[str] | None = None) -> float:
     if _ROLE_ZERO.search(title):
         return 0.0
     if _ROLE_PM.search(title):
@@ -166,7 +364,12 @@ def _role_multiplier(title: str) -> float:
         return 0.6
     if _ROLE_TL.search(title) and not _ROLE_MANAGER_WORD.search(title):
         return 0.9
-    return 1.0
+
+    if not target_levels or "any" in target_levels:
+        return 1.0
+
+    level = _classify_level(title)
+    return 1.0 if level in target_levels else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -338,15 +541,28 @@ def _score_similarity(
 # Stage 1 selection — multi-signal scorer
 # ---------------------------------------------------------------------------
 
-def stage1_select(postings: list[JobPosting], resume_text: str, top_n: int = 30, domain_tiers: dict | None = None) -> list[JobPosting]:
+def stage1_select(
+    postings: list[JobPosting],
+    resume_text: str,
+    top_n: int = 30,
+    domain_tiers: dict | None = None,          # legacy kwarg — ignored if scoring_config set
+    scoring_config: "ScoringConfig | None" = None,
+) -> list[JobPosting]:
     """Stage 1 selection using multi-signal scoring.
 
     score = max(0, base × role_multiplier − anti_pattern_penalty)
     base  = embedding_sim×0.45 + skill_overlap×0.25 + domain_score×0.20 + freshness×0.10
-    """
-    expanded_resume = _expand_resume(resume_text)
 
-    t1, t2, t3 = _compile_domain_patterns(domain_tiers) if domain_tiers else (_DOMAIN_TIER1, _DOMAIN_TIER2, _DOMAIN_TIER3)
+    When scoring_config is provided it takes precedence over domain_tiers.
+    When neither is provided the original hardcoded config is used (ORIGINAL_CONFIG).
+    """
+    cfg = scoring_config or ORIGINAL_CONFIG
+
+    expanded_resume = _expand_resume(resume_text, cfg.query_expansion)
+
+    t1, t2, t3 = _compile_domain_patterns(cfg.domain_tiers) if cfg.domain_tiers else (
+        _DOMAIN_TIER1, _DOMAIN_TIER2, _DOMAIN_TIER3
+    )
 
     embedding_map: dict[str, list[float]] | None = None
     texts = [expanded_resume] + [p.description for p in postings]
@@ -358,7 +574,7 @@ def stage1_select(postings: list[JobPosting], resume_text: str, top_n: int = 30,
 
     for posting in postings:
         embed_sim  = _score_similarity(expanded_resume, posting, embedding_map)
-        skill_ov   = _skill_overlap(posting.description)
+        skill_ov   = _skill_overlap(posting.description, cfg.skill_groups, cfg.raw_skill_regex)
         domain_sc  = _domain_score(posting.description, t1, t2, t3)
         fresh      = _freshness_score(posting.age_days)
 
@@ -369,7 +585,7 @@ def stage1_select(postings: list[JobPosting], resume_text: str, top_n: int = 30,
             + fresh     * 0.10
         )
 
-        role_mult = _role_multiplier(posting.title)
+        role_mult = _role_multiplier(posting.title, cfg.target_levels)
         penalty   = _anti_pattern_penalty(posting.description)
 
         # Keep penalty_multiplier field for downstream consumers (embedded-heavy flag)

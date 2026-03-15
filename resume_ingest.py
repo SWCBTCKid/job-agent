@@ -48,7 +48,11 @@ Analyse the following resume and return a JSON object with exactly these fields:
   "keywords": {{
     "titles": ["<job title>", ...],
     "skills": ["<technical skill>", ...],
-    "domains": ["<domain>", ...]
+    "domains": ["<domain>", ...],
+    "terminology": {{
+      "<internal/proprietary term>": "<industry equivalent keywords>",
+      ...
+    }}
   }}
 }}
 
@@ -65,7 +69,15 @@ improvements: List 3-6 specific, actionable suggestions. Be direct and precise.
 
 keywords.titles: 4-8 job titles this candidate should search for, based on their actual experience.
 keywords.skills: 8-15 specific technical skills/tools visible in or directly implied by the resume.
-keywords.domains: 4-8 work domains this resume targets (e.g. "distributed systems", "security observability").
+keywords.domains: 4-8 SHORT domain phrases (2-4 words) that appear verbatim or near-verbatim in job
+  descriptions. Use the exact terminology a JD would use — not descriptive labels.
+  Good: "observability platform", "distributed systems", "security enforcement", "fleet management",
+        "site reliability", "control plane", "production engineering", "safety-critical"
+  Bad:  "Security observability & diagnostics", "Fleet management & autonomous vehicles"
+keywords.terminology: Internal or company-specific tool/system names that appear in the resume, mapped
+  to industry-standard equivalent keywords a job description would use. Only include if the resume
+  contains proprietary/internal names (e.g. company codenames, internal platforms). Return {{}} if none.
+  Example: {{"scuba": "metrics aggregation observability platform", "tupperware": "kubernetes container orchestration"}}
 
 RESUME:
 {resume_text}
@@ -132,10 +144,14 @@ def _parse_haiku_response(text: str) -> dict:
     keywords = data.get("keywords", {})
     if not isinstance(keywords, dict):
         keywords = {}
+    raw_terminology = keywords.get("terminology", {})
+    if not isinstance(raw_terminology, dict):
+        raw_terminology = {}
     keywords = {
-        "titles":  [str(t) for t in keywords.get("titles",  []) if t],
-        "skills":  [str(s) for s in keywords.get("skills",  []) if s],
-        "domains": [str(d) for d in keywords.get("domains", []) if d],
+        "titles":      [str(t) for t in keywords.get("titles",  []) if t],
+        "skills":      [str(s) for s in keywords.get("skills",  []) if s],
+        "domains":     [str(d) for d in keywords.get("domains", []) if d],
+        "terminology": {str(k): str(v) for k, v in raw_terminology.items() if k and v},
     }
 
     return {
@@ -185,7 +201,7 @@ def _print_resume_report(record: ResumeRecord) -> None:
     print()
 
 
-def ingest_resume(path: str, db: JobDB, silent: bool = False) -> ResumeRecord:
+def ingest_resume(path: str, db: JobDB, silent: bool = False, force: bool = False) -> ResumeRecord:
     """
     Ingest a resume file. Returns a ResumeRecord.
 
@@ -196,6 +212,7 @@ def ingest_resume(path: str, db: JobDB, silent: bool = False) -> ResumeRecord:
         path:   Path to .txt or .md resume file.
         db:     Open JobDB instance.
         silent: If True, suppress terminal output (useful in background processes).
+        force:  If True, delete cached record and re-call Haiku even if content unchanged.
     """
     resume_path = Path(path)
     if not resume_path.exists():
@@ -206,6 +223,12 @@ def ingest_resume(path: str, db: JobDB, silent: bool = False) -> ResumeRecord:
         raise ValueError(f"Resume file is empty: {path}")
 
     resume_id = hashlib.sha256(content.encode("utf-8")).hexdigest()[:12]
+
+    if force:
+        db.delete_resume(resume_id)
+        if not silent:
+            print(f"\nForce re-ingest: cleared cached record (id={resume_id})")
+        LOGGER.info("Force re-ingest: deleted cached record %s", resume_id)
 
     # Fast path — already in DB
     existing = db.get_resume(resume_id)
