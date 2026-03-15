@@ -9,7 +9,7 @@
       "company": "CrowdStrike",
       "url": "https://crowdstrike.wd5.myworkdayjobs.com/crowdstrikecareers",
       "api_url": "https://crowdstrike.wd5.myworkdayjobs.com/wday/cxs/crowdstrike/crowdstrikecareers/jobs",
-      "max_jobs": 200,
+      "max_jobs": 400,
       "tier_boost": 1.1
     },
     {
@@ -21,7 +21,7 @@
       "company": "Nvidia",
       "url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
       "api_url": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
-      "max_jobs": 200,
+      "max_jobs": 500,
       "tier_boost": 1.2
     },
     {

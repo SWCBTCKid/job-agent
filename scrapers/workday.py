@@ -24,7 +24,34 @@ _WD_UA = (
     "Chrome/120.0.0.0 Safari/537.36"
 )
 _WD_PAGE_LIMIT = 20
-_WD_MAX_JOBS = 200  # default cap — override per-seed with "max_jobs"
+_WD_MAX_JOBS = 200       # default cap — override per-seed with "max_jobs"
+_WD_DETAIL_CONCURRENCY = 8  # concurrent detail-page fetches
+
+# Quick Bay Area check on raw locationsText from the listing response (no description yet)
+_BAY_AREA_TOKENS = [
+    "santa clara", "san jose", "san francisco", "bay area",
+    "mountain view", "sunnyvale", "palo alto", "menlo park",
+    "cupertino", "redwood city", "san mateo", "fremont",
+    "south san francisco", "foster city", "hayward", "emeryville",
+    "burlingame", "san carlos", "belmont", "oakland", "berkeley",
+]
+
+
+def _location_needs_detail(loc: str) -> bool:
+    """Return True if this job should have its detail page fetched.
+
+    Covers: confirmed Bay Area cities, remote, and multi-location entries
+    (e.g. '2 Locations') which may include a Bay Area site.
+    """
+    loc_lower = loc.lower()
+    if any(t in loc_lower for t in _BAY_AREA_TOKENS):
+        return True
+    if "remote" in loc_lower:
+        return True
+    # "2 Locations", "3 Locations", etc. — need detail to resolve actual cities
+    if re.match(r"^\d+ locations?$", loc_lower.strip()):
+        return True
+    return False
 
 
 def _fetch_workday_jobs(api_url: str, referer: str, max_jobs: int = _WD_MAX_JOBS) -> list[dict]:
@@ -82,6 +109,29 @@ def _fetch_workday_jobs(api_url: str, referer: str, max_jobs: int = _WD_MAX_JOBS
     return all_jobs[:max_jobs]
 
 
+def _fetch_workday_detail(detail_url: str) -> str:
+    """Fetch the job description from the CXS job detail endpoint."""
+    req = urllib.request.Request(
+        detail_url,
+        headers={"Accept": "application/json", "User-Agent": _WD_UA},
+    )
+    with urllib.request.urlopen(req, timeout=20) as r:
+        data = json.loads(r.read().decode("utf-8", errors="ignore"))
+    info = data.get("jobPostingInfo", {})
+    return (info.get("jobDescription") or info.get("jobSummary") or "").strip()
+
+
+async def _enrich_with_detail(sem: asyncio.Semaphore, detail_url: str, job: dict) -> None:
+    """Fetch one job detail page and store description in job['_description']."""
+    async with sem:
+        try:
+            raw = await asyncio.to_thread(_fetch_workday_detail, detail_url)
+            job["_description"] = raw
+        except Exception as exc:
+            LOGGER.debug("Workday detail fetch failed (%s): %s", detail_url, exc)
+            job["_description"] = ""
+
+
 class WorkdayScraper(BaseScraper):
     source = "workday"
     source_priority = 2
@@ -104,11 +154,31 @@ class WorkdayScraper(BaseScraper):
                     jobs = await asyncio.to_thread(_fetch_workday_jobs, api_url, page_url, max_jobs)
                     parsed = urlparse(api_url)
                     base_url = f"{parsed.scheme}://{parsed.netloc}"
+                    # detail_base = everything before the trailing /jobs in the api_url
+                    detail_base = api_url.rsplit("/jobs", 1)[0]
+
+                    # Enrich Bay Area + multi-location jobs with descriptions from detail endpoints
+                    bay_jobs = [j for j in jobs if _location_needs_detail(j.get("locationsText", ""))]
+                    if bay_jobs:
+                        sem = asyncio.Semaphore(_WD_DETAIL_CONCURRENCY)
+                        tasks = []
+                        for job in bay_jobs:
+                            path = job.get("externalPath", "")
+                            if path:
+                                detail_url = detail_base + path
+                                tasks.append(_enrich_with_detail(sem, detail_url, job))
+                        if tasks:
+                            await asyncio.gather(*tasks)
+                            LOGGER.info(
+                                "Workday detail: %s — fetched %d descriptions for %d Bay Area jobs",
+                                company, sum(1 for j in bay_jobs if j.get("_description")), len(bay_jobs),
+                            )
+
                     for job in jobs:
                         title = job.get("title") or job.get("externalTitle") or ""
                         path = job.get("externalPath") or job.get("url") or ""
                         url = path if path.startswith("http") else (base_url + "/" + path.lstrip("/"))
-                        desc = strip_html(job.get("description", ""))
+                        desc = strip_html(job.get("_description") or job.get("description", ""))
                         loc = job.get("locationsText") or job.get("location", "")
                         postings.append(
                             JobPosting(
