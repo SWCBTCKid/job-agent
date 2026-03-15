@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026-03-15] - Decoupled Stage 1 Scorer — per-candidate ScoringConfig
+
+### Added
+- **`matcher/embedder.py`** — `ScoringConfig` dataclass:
+  - Carries `query_expansion`, `domain_tiers`, `skill_groups`, `raw_skill_regex`
+  - `to_dict()` / `from_dict()` for DB serialisation
+  - `ORIGINAL_CONFIG` constant — the original hardcoded Sodiq/Meta config captured as a named config
+  - `build_scoring_config(record: ResumeRecord) -> ScoringConfig` — generates per-candidate config
+    from Haiku-extracted keywords: tier1 domains from `keywords.domains`, skill groups auto-bucketed
+    from `keywords.skills`, query expansion from `keywords.terminology`
+  - `_auto_bucket_skills()` — assigns Haiku skill strings into 6 groups (languages, systems,
+    distributed, reliability, security, scale) + "other" bucket
+- **`resume_ingest.py`** — Haiku prompt extended with `keywords.terminology` field:
+  - Extracts internal/proprietary tool names and their industry-standard equivalents
+  - Stored in `keywords["terminology"]` (JSON blob alongside existing keywords)
+- **`db.py`** — `scoring_configs` table:
+  - `store_scoring_config(id, label, source, config_dict)` — INSERT OR IGNORE
+  - `get_scoring_config(id) -> dict | None`
+  - `list_scoring_configs() -> list[dict]`
+  - `save_stage1_score_original(resume_id, postings)` — persists original config scores
+  - Migration: adds `stage1_score_original REAL` column to all existing per-resume tables
+  - Schema: new tables include `stage1_score_original` column
+- **`main.py`** `run_resume_flow` — Stage 1 runs twice:
+  - Haiku config scores stored in `stage1_score` (active, used for downstream ranking)
+  - Original config scores stored in `stage1_score_original` (for comparison only)
+  - `_print_scoring_comparison()` — terminal table showing top-15 postings with both scores
+    and delta, plus above-threshold counts for each config
+
+### Changed
+- `stage1_select` — accepts `scoring_config: ScoringConfig | None` (defaults to `ORIGINAL_CONFIG`)
+- `_expand_resume` — accepts `query_expansion` dict parameter
+- `_skill_overlap` — accepts `skill_groups` dict + `raw_regex` flag; falls back to pre-compiled
+  `_SKILL_PATTERNS` when `skill_groups` is None (original config fast path unchanged)
+- `matcher/__init__.py` — exports `ScoringConfig`, `ORIGINAL_CONFIG`, `build_scoring_config`
+
+### Why
+Stage 1 scoring was hardcoded for one candidate (Sodiq/Meta): domain tiers referenced
+observability/safety-critical/security enforcement; skill groups were weighted for security +
+reliability; query expansion translated Meta-internal tool names. This made the scorer
+useless for any other background. Now each resume drives its own config via Haiku, with the
+original config stored in DB for controlled comparison.
+
+---
+
 ## [2026-03-14] - MVP Resume Pipeline + GitHub Prep
 
 ### Added
