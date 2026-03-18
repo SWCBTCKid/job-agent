@@ -38,5 +38,13 @@
   {"name": "SambaNova Systems",      "ats": "greenhouse", "slug": "sambanovasystems",     "tier_boost": 1.1},
   {"name": "Cerebras Systems",       "ats": "greenhouse", "slug": "cerebras",             "tier_boost": 1.2},
   {"name": "d-Matrix",               "ats": "ashby",      "slug": "d-matrix",             "tier_boost": 1.1},
-  {"name": "Etched",                 "ats": "ashby",      "slug": "etched",               "tier_boost": 1.1}
+  {"name": "Etched",                 "ats": "ashby",      "slug": "etched",               "tier_boost": 1.1},
+  {"name": "Groq",                   "ats": "greenhouse", "slug": "groq",                 "tier_boost": 1.2},
+  {"name": "Hailo",                  "ats": "greenhouse", "slug": "hailo",                "tier_boost": 1.1},
+
+  {"name": "Toyota Research Institute", "ats": "greenhouse", "slug": "tri",              "tier_boost": 1.2},
+  {"name": "Joby Aviation",          "ats": "greenhouse", "slug": "jobyaviation",         "tier_boost": 1.2},
+  {"name": "Rivian",                 "ats": "workday",    "slug": "rivian",               "tier_boost": 1.1},
+  {"name": "Lucid Motors",           "ats": "workday",    "slug": "lucidmotors",          "tier_boost": 1.0},
+  {"name": "Cruise",                 "ats": "greenhouse", "slug": "cruise",               "tier_boost": 1.1}
 ]

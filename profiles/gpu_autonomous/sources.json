@@ -28,6 +28,16 @@
       "company": "Microsoft",
       "url": "https://microsoft.wd1.myworkdayjobs.com/msftcareers",
       "tier_boost": 1.0
+    },
+    {
+      "company": "Rivian",
+      "url": "https://rivian.wd5.myworkdayjobs.com/rivian",
+      "tier_boost": 1.1
+    },
+    {
+      "company": "Lucid Motors",
+      "url": "https://lucidmotors.wd1.myworkdayjobs.com/careers",
+      "tier_boost": 1.0
     }
   ],
   "wellfound": [
@@ -51,9 +61,7 @@
       "tier_boost": 1.0
     }
   ],
-  "icims": [
-    {"company": "Joby Aviation", "base_url": "https://careers-jobyaviation.icims.com", "tier_boost": 1.1}
-  ],
+  "icims": [],
   "theirstack": [
     {
       "label": "AI chip companies without ATS coverage",
@@ -66,7 +74,7 @@
     },
     {
       "label": "AV/Robotics companies without ATS coverage",
-      "company_domains": ["covariant.ai", "gatik.ai", "pony.ai", "getcruise.com"],
+      "company_domains": ["covariant.ai", "gatik.ai", "pony.ai", "getcruise.com", "tri.global", "jobyaviation.com"],
       "job_title_pattern_or": "engineer|software|platform|infrastructure|robotics|autonomy",
       "job_location_pattern_or": "San Francisco|Bay Area|Mountain View|Palo Alto|Sunnyvale|Fremont|San Jose|Oakland|Berkeley|Emeryville|Redwood City",
       "max_age_days": 14,
@@ -81,7 +89,8 @@
         "nimble.ai", "intrinsic.ai", "serverobotics.com",
         "physicalintelligence.company", "jobyaviation.com", "wisk.aero",
         "tenstorrent.com", "sambanova.ai", "d-matrix.ai", "etched.com",
-        "groq.com", "rivos.com", "enfabrica.net", "amperecomputing.com"
+        "groq.com", "rivos.com", "enfabrica.net", "amperecomputing.com",
+        "hailo.ai", "tri.global", "rivian.com", "lucidmotors.com", "getcruise.com"
       ],
       "job_title_pattern_or": "engineer|software|platform|infrastructure|autonomy",
       "max_age_days": 7,
@@ -107,6 +116,24 @@
       "location": "San Francisco, California, United States",
       "date_posted": "month",
       "tier_boost": 1.1
+    },
+    {
+      "query": "software engineer Joby Aviation Santa Cruz OR San Carlos OR Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.2
+    },
+    {
+      "query": "software engineer \"Toyota Research Institute\" OR TRI Los Altos",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.2
+    },
+    {
+      "query": "software engineer Rivian OR \"Lucid Motors\" Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.0
     }
   ],
   "linkedin": [],
