@@ -1,0 +1,114 @@
+{
+  "workday": [
+    {
+      "company": "Booz Allen Hamilton",
+      "url": "https://boozallen.wd1.myworkdayjobs.com/EXT",
+      "tier_boost": 1.3
+    },
+    {
+      "company": "Leidos",
+      "url": "https://leidos.wd5.myworkdayjobs.com/External",
+      "tier_boost": 1.3
+    },
+    {
+      "company": "SAIC",
+      "url": "https://saic.wd5.myworkdayjobs.com/SAIC",
+      "tier_boost": 1.2
+    },
+    {
+      "company": "Salesforce",
+      "url": "https://salesforce.wd12.myworkdayjobs.com/External_Career_Site",
+      "tier_boost": 1.1
+    },
+    {
+      "company": "Intuit",
+      "url": "https://jobs.intuit.com",
+      "tier_boost": 1.1
+    },
+    {
+      "company": "Adobe",
+      "url": "https://adobe.wd5.myworkdayjobs.com/external_experienced",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "Cisco",
+      "url": "https://cisco.wd5.myworkdayjobs.com/External",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "Lockheed Martin",
+      "url": "https://lmt.wd1.myworkdayjobs.com/LMI_Jobs",
+      "tier_boost": 1.1
+    },
+    {
+      "company": "Northrop Grumman",
+      "url": "https://northropgrumman.wd1.myworkdayjobs.com/NGCCareers",
+      "tier_boost": 1.1
+    }
+  ],
+  "serp": [
+    {
+      "query": "financial analyst federal government contractor Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.2
+    },
+    {
+      "query": "FP&A analyst budget analyst San Francisco Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.1
+    },
+    {
+      "query": "budget analyst NASA contractor Mountain View Sunnyvale",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.3
+    },
+    {
+      "query": "financial analyst SAP Power BI Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.1
+    },
+    {
+      "query": "program financial manager cost analyst defense aerospace Bay Area",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.2
+    }
+  ],
+  "theirstack": [
+    {
+      "label": "Government contractors and defense finance",
+      "company_domains": [
+        "boozallen.com", "leidos.com", "saic.com", "peraton.com",
+        "kbr.com", "amentum.com", "icfi.com", "mitre.org",
+        "jacobs.com", "parsons.com"
+      ],
+      "job_title_pattern_or": "financial analyst|budget analyst|cost analyst|FP&A|financial planning|program analyst|financial manager",
+      "job_location_pattern_or": "San Francisco|Bay Area|Mountain View|Palo Alto|Sunnyvale|San Jose|Moffett Field|Santa Clara",
+      "max_age_days": 30,
+      "limit": 50,
+      "tier_boost": 1.3
+    },
+    {
+      "label": "Fintech and tech finance roles",
+      "company_domains": [
+        "stripe.com", "brex.com", "ramp.com", "rippling.com",
+        "gusto.com", "chime.com", "plaid.com", "carta.com"
+      ],
+      "job_title_pattern_or": "financial analyst|FP&A|budget analyst|finance manager|financial planning|cost analyst",
+      "job_location_pattern_or": "San Francisco|Bay Area|Remote",
+      "max_age_days": 14,
+      "limit": 25,
+      "tier_boost": 1.1
+    }
+  ],
+  "linkedin": [],
+  "ashby": [],
+  "yc": [],
+  "wellfound": [],
+  "pragmatic": [],
+  "icims": []
+}

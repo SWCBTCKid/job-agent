@@ -225,8 +225,9 @@ def _write_output(resume_id: str, results: list[dict]) -> Path:
     txt_path = OUTPUT_DIR / f"results_{resume_id}_{ts}.txt"
     lines = []
     for r in results:
+        posted = (r.get('posted_at') or 'unknown')[:10]
         lines.append(f"{r['rank']:>3}. [{r.get('claude_score', 0):.1f}] {r.get('company', '')} — {r.get('title', '')}")
-        lines.append(f"      Level: {r.get('level_fit', '?')} | Tier: {r.get('tier', '?')}")
+        lines.append(f"      Level: {r.get('level_fit', '?')} | Tier: {r.get('tier', '?')} | Posted: {posted}")
         lines.append(f"      {r.get('match_reason', '')}")
         lines.append(f"      URL: {r.get('url', '')}")
         lines.append("")

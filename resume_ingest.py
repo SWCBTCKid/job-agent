@@ -31,7 +31,7 @@ HAIKU_MODEL = "claude-haiku-4-5-20251001"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
 _SYSTEM = (
-    "You are a technical resume analyst. "
+    "You are a professional resume analyst. "
     "Output only valid JSON. No prose outside the JSON object."
 )
 
@@ -64,7 +64,8 @@ quality_score guide:
   1-2   Poor. Major gaps, unreadable, or completely generic.
 
 improvements: List 3-6 specific, actionable suggestions. Be direct and precise.
-  Good: "Add request volume metric to the observability platform bullet (e.g. '30M+ services')"
+  Good: "Add dollar value to the portfolio management bullet (e.g. 'managed $50M+ in funding')"
+  Good: "Quantify the variance rate improvement against an industry benchmark (e.g. 'vs. 3-5% industry average')"
   Bad: "Add more metrics"
 
 keywords.titles: 4-8 job titles this candidate should search for, based on their actual experience.
@@ -77,7 +78,7 @@ keywords.domains: 4-8 SHORT domain phrases (2-4 words) that appear verbatim or n
 keywords.terminology: Internal or company-specific tool/system names that appear in the resume, mapped
   to industry-standard equivalent keywords a job description would use. Only include if the resume
   contains proprietary/internal names (e.g. company codenames, internal platforms). Return {{}} if none.
-  Example: {{"scuba": "metrics aggregation observability platform", "tupperware": "kubernetes container orchestration"}}
+  Example: {{"scuba": "metrics aggregation observability platform", "tupperware": "kubernetes container orchestration", "RAMS": "reimbursable agreements management financial tracking system"}}
 
 RESUME:
 {resume_text}

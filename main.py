@@ -326,13 +326,14 @@ def _print_scoring_comparison(
     print(f"  Above threshold ({threshold}) — Haiku: {haiku_above}   Original: {orig_above}   Delta: {haiku_above - orig_above:+d}")
     print(f"  Avg score delta : {avg_delta:+.4f}  (Haiku − Original)")
     print()
-    print(f"  {'Company':<30} {'Title':<35} {'Haiku':>7} {'Orig':>7} {'Δ':>6}")
-    print("  " + "-" * 86)
+    print(f"  {'Company':<30} {'Title':<35} {'Posted':<12} {'Haiku':>7} {'Orig':>7} {'Δ':>6}")
+    print("  " + "-" * 99)
     for p in top15:
         h = haiku_map.get(p.id, 0.0)
         o = orig_map.get(p.id, 0.0)
         delta = h - o
-        print(f"  {p.company:<30} {p.title[:34]:<35} {h:>7.4f} {o:>7.4f} {delta:>+6.3f}")
+        posted = (p.posted_at or "")[:10] if p.posted_at else "unknown"
+        print(f"  {p.company:<30} {p.title[:34]:<35} {posted:<12} {h:>7.4f} {o:>7.4f} {delta:>+6.3f}")
     print()
 
 
@@ -635,23 +636,10 @@ async def run_resume_flow(
     db.store_scoring_config(haiku_cfg.config_id, haiku_cfg.label, haiku_cfg.source, haiku_cfg.to_dict())
     LOGGER.info("Scoring configs ready — original=%s  haiku=%s", ORIGINAL_CONFIG.config_id, haiku_cfg.config_id)
 
-    # ── Stage 1: run with both configs, store both scores ────────────
+    # ── Stage 1: run with Haiku config ───────────────────────────────
     print("Running Stage 1 — Haiku config...")
-    stage1_haiku = stage1_select(after_role, resume_text, len(after_role), scoring_config=haiku_cfg)
-    db.save_resume_stage1_scores(resume_id, stage1_haiku)
-
-    print("Running Stage 1 — Original config (for comparison)...")
-    # Deep-copy postings so stage1_score fields don't collide between the two runs
-    import copy
-    postings_orig = copy.deepcopy(after_role)
-    stage1_orig = stage1_select(postings_orig, resume_text, len(postings_orig), scoring_config=ORIGINAL_CONFIG)
-    db.save_stage1_score_original(resume_id, stage1_orig)
-
-    # Print comparison summary
-    _print_scoring_comparison(stage1_haiku, stage1_orig, threshold=SETTINGS.stage1_threshold)
-
-    # Use haiku scores as the active stage1_scored for downstream steps
-    stage1_scored = stage1_haiku
+    stage1_scored = stage1_select(after_role, resume_text, len(after_role), scoring_config=haiku_cfg)
+    db.save_resume_stage1_scores(resume_id, stage1_scored)
 
     # Store all scored candidates in resume table
     for p in stage1_scored:

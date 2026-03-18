@@ -1,0 +1,14 @@
+[
+  {"name": "Palantir",          "ats": "lever",      "slug": "palantir",          "tier_boost": 1.3},
+  {"name": "Anduril Industries","ats": "greenhouse", "slug": "andurilindustries", "tier_boost": 1.2},
+  {"name": "Stripe",            "ats": "greenhouse", "slug": "stripe",            "tier_boost": 1.2},
+  {"name": "Brex",              "ats": "greenhouse", "slug": "brex",              "tier_boost": 1.2},
+  {"name": "Ramp",              "ats": "greenhouse", "slug": "ramp",              "tier_boost": 1.2},
+  {"name": "Rippling",          "ats": "greenhouse", "slug": "rippling",          "tier_boost": 1.1},
+  {"name": "Robinhood",         "ats": "greenhouse", "slug": "robinhood",         "tier_boost": 1.0},
+  {"name": "Coinbase",          "ats": "greenhouse", "slug": "coinbase",          "tier_boost": 1.0},
+  {"name": "Scale AI",          "ats": "greenhouse", "slug": "scaleai",           "tier_boost": 1.0},
+  {"name": "Figma",             "ats": "greenhouse", "slug": "figma",             "tier_boost": 1.0},
+  {"name": "Notion",            "ats": "ashby",      "slug": "notion",            "tier_boost": 1.0},
+  {"name": "Databricks",        "ats": "greenhouse", "slug": "databricks",        "tier_boost": 1.0}
+]
