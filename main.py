@@ -27,6 +27,7 @@ from salary import infer_salary, load_salary_table
 from scrapers import (
     AshbyScraper,
     BuiltinSFScraper,
+    EightfoldScraper,
     GreenhouseScraper,
     HNScraper,
     ICIMSScraper,
@@ -428,6 +429,7 @@ def build_scrapers(db: JobDB, profile_id: str) -> list:
         LeverScraper(lever),
         AshbyScraper(_sources_of("ashby")),
         ICIMSScraper(_sources_of("icims")),
+        EightfoldScraper(_sources_of("eightfold")),
         TheirStackScraper(SETTINGS.theirstack_api_key, _sources_of("theirstack")),
         SerpScraper(SETTINGS.serpapi_key, _sources_of("serp")),
         BuiltinSFScraper(tier_boost=1.0),

@@ -11,6 +11,7 @@ from .builtinsf import BuiltinSFScraper
 from .icims import ICIMSScraper
 from .theirstack import TheirStackScraper
 from .serp import SerpScraper
+from .eightfold import EightfoldScraper
 
 __all__ = [
     "GreenhouseScraper",
@@ -26,4 +27,5 @@ __all__ = [
     "ICIMSScraper",
     "TheirStackScraper",
     "SerpScraper",
+    "EightfoldScraper",
 ]
