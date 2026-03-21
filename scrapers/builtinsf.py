@@ -17,7 +17,7 @@ from utils import make_url_id, strip_html
 LOGGER = logging.getLogger(__name__)
 
 _BASE_URL = "https://builtin.com"
-_SEARCH_URL = "https://builtin.com/jobs/dev-engineering"
+_DEFAULT_SEARCH_URL = "https://builtin.com/jobs/dev-engineering"
 _CITY = "san-francisco"
 _SEARCH_TERMS = [
     "infrastructure engineer",
@@ -47,11 +47,19 @@ class BuiltinSFScraper(BaseScraper):
     source = "builtinsf"
     source_priority = 2  # aggregator, higher competition than direct boards
 
-    def __init__(self, tier_boost: float = 1.0):
+    def __init__(
+        self,
+        tier_boost: float = 1.0,
+        search_terms: list[str] | None = None,
+        search_url: str | None = None,
+    ):
         self.tier_boost = tier_boost
+        self.search_terms = search_terms  # None → use module-level _SEARCH_TERMS
+        self.search_url = search_url or _DEFAULT_SEARCH_URL
 
     async def fetch(self) -> list[JobPosting]:
         job_urls: dict[str, None] = {}  # preserve insertion order, dedupe
+        terms = self.search_terms if self.search_terms is not None else _SEARCH_TERMS
 
         headers = {
             "User-Agent": (
@@ -65,7 +73,7 @@ class BuiltinSFScraper(BaseScraper):
 
         async with httpx.AsyncClient(timeout=30, headers=headers, follow_redirects=True) as client:
             # Phase 1: collect job URLs from listing pages
-            for term in _SEARCH_TERMS:
+            for term in terms:
                 for page in range(1, _PAGES_PER_TERM + 1):
                     params = {
                         "search": term,
@@ -74,7 +82,7 @@ class BuiltinSFScraper(BaseScraper):
                     if page > 1:
                         params["page"] = str(page)
                     try:
-                        resp = await client.get(_SEARCH_URL, params=params)
+                        resp = await client.get(self.search_url, params=params)
                         resp.raise_for_status()
                         urls = _extract_job_urls(resp.text)
                         if not urls:

@@ -148,6 +148,20 @@ class WorkdayScraper(BaseScraper):
             api_url = seed.get("api_url", "")
             page_url = seed.get("url", "")
 
+            # Auto-derive CXS API URL from page URL if not explicitly set.
+            # Page URL format: https://{sub}.wd{N}.myworkdayjobs.com/{Tenant}
+            # API URL format:  https://{sub}.wd{N}.myworkdayjobs.com/wday/cxs/{sub}/{Tenant}/jobs
+            if not api_url and page_url and "myworkdayjobs.com" in page_url:
+                parsed_page = urlparse(page_url)
+                subdomain = parsed_page.netloc.split(".")[0]  # e.g. "bah"
+                tenant = parsed_page.path.strip("/")          # e.g. "BAH_Jobs"
+                if subdomain and tenant:
+                    api_url = (
+                        f"{parsed_page.scheme}://{parsed_page.netloc}"
+                        f"/wday/cxs/{subdomain}/{tenant}/jobs"
+                    )
+                    LOGGER.debug("Workday: auto-derived api_url=%s", api_url)
+
             if api_url:
                 try:
                     max_jobs = int(seed.get("max_jobs", _WD_MAX_JOBS))

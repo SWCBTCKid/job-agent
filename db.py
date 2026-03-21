@@ -71,10 +71,11 @@ class JobDB:
             );
 
             CREATE TABLE IF NOT EXISTS search_profiles (
-                id         TEXT PRIMARY KEY,
-                label      TEXT,
-                created_at TEXT,
-                is_default INTEGER DEFAULT 0
+                id           TEXT PRIMARY KEY,
+                label        TEXT,
+                created_at   TEXT,
+                is_default   INTEGER DEFAULT 0,
+                filters_json TEXT DEFAULT '{}'
             );
 
             CREATE TABLE IF NOT EXISTS scoring_configs (
@@ -115,6 +116,13 @@ class JobDB:
                 "CREATE UNIQUE INDEX IF NOT EXISTS uq_profile_company "
                 "ON profile_companies(profile_id, ats, slug)"
             )
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass
+
+        # Add filters_json to existing search_profiles rows
+        try:
+            self.conn.execute("ALTER TABLE search_profiles ADD COLUMN filters_json TEXT DEFAULT '{}'")
             self.conn.commit()
         except sqlite3.OperationalError:
             pass
@@ -286,6 +294,33 @@ class JobDB:
                 "company_count": count,
             })
         return result
+
+    def get_profile_filters(self, profile_id: str) -> dict:
+        """
+        Return the filter config for a profile.
+
+        Schema:
+          role_exclude_patterns: list[str]  — regex patterns; titles matching any are hard-rejected
+          role_zero_patterns:    list[str]  — regex patterns; titles matching any get Stage 1 multiplier=0
+          target_levels:         list[str]  — default level filter ("junior"|"mid"|"senior"|"staff"|"manager"|"any")
+        """
+        row = self.conn.execute(
+            "SELECT filters_json FROM search_profiles WHERE id=?", (profile_id,)
+        ).fetchone()
+        if not row or not row["filters_json"]:
+            return {}
+        try:
+            return json.loads(row["filters_json"])
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    def set_profile_filters(self, profile_id: str, filters: dict) -> None:
+        """Overwrite the filters_json for a profile."""
+        self.conn.execute(
+            "UPDATE search_profiles SET filters_json=? WHERE id=?",
+            (json.dumps(filters), profile_id),
+        )
+        self.conn.commit()
 
     # ── Profile companies ─────────────────────────────────────────────────────
 

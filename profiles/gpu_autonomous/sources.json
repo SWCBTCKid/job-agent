@@ -38,6 +38,35 @@
       "company": "Lucid Motors",
       "url": "https://lucidmotors.wd1.myworkdayjobs.com/careers",
       "tier_boost": 1.0
+    },
+    {
+      "company": "Broadcom",
+      "url": "https://broadcom.wd1.myworkdayjobs.com/External_Career",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "Qualcomm",
+      "url": "https://qualcomm.wd5.myworkdayjobs.com/External",
+      "api_url": "https://qualcomm.wd5.myworkdayjobs.com/wday/cxs/qualcomm/External/jobs",
+      "max_jobs": 300,
+      "tier_boost": 1.1
+    },
+    {
+      "company": "Cadence Design Systems",
+      "url": "https://cadence.wd1.myworkdayjobs.com/External_Careers",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "Marvell Technology",
+      "url": "https://marvell.wd1.myworkdayjobs.com/MarvellCareers",
+      "tier_boost": 1.0
+    },
+    {
+      "company": "General Motors",
+      "url": "https://generalmotors.wd5.myworkdayjobs.com/Careers_GM",
+      "api_url": "https://generalmotors.wd5.myworkdayjobs.com/wday/cxs/generalmotors/Careers_GM/jobs",
+      "max_jobs": 300,
+      "tier_boost": 1.0
     }
   ],
   "wellfound": [
@@ -90,11 +119,16 @@
         "physicalintelligence.company", "jobyaviation.com", "wisk.aero",
         "tenstorrent.com", "sambanova.ai", "d-matrix.ai", "etched.com",
         "groq.com", "rivos.com", "enfabrica.net", "amperecomputing.com",
-        "hailo.ai", "tri.global", "rivian.com", "lucidmotors.com", "getcruise.com"
+        "hailo.ai", "tri.global", "rivian.com", "lucidmotors.com", "getcruise.com",
+        "staflsystems.com", "roboforce.ai", "oklo.com", "muonspace.com",
+        "astranis.com", "planetlabs.com", "rocketlabusa.com", "capellaspace.com",
+        "kairospower.com", "motional.com", "maymobility.com", "co.bot", "apolink.com",
+        "broadcom.com", "qualcomm.com", "cadence.com", "marvell.com",
+        "gm.com", "ford.com", "synopsys.com", "nordicsemi.com"
       ],
-      "job_title_pattern_or": "engineer|software|platform|infrastructure|autonomy",
+      "job_title_pattern_or": "engineer|software|platform|infrastructure|autonomy|embedded|compiler|silicon",
       "max_age_days": 7,
-      "limit": 50,
+      "limit": 75,
       "tier_boost": 1.0
     }
   ],
@@ -134,6 +168,30 @@
       "location": "San Francisco, California, United States",
       "date_posted": "month",
       "tier_boost": 1.0
+    },
+    {
+      "query": "embedded software engineer \"Nordic Semiconductor\" Bay Area OR California",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.0
+    },
+    {
+      "query": "software engineer Ford \"Palo Alto\" OR \"Silicon Valley\" OR \"San Jose\" autonomous OR AV OR embedded",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.0
+    },
+    {
+      "query": "software engineer Synopsys \"Mountain View\" OR \"Sunnyvale\" EDA OR compiler OR platform",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.0
+    },
+    {
+      "query": "software engineer \"Alten Technology\" Bay Area OR California embedded OR autonomous",
+      "location": "San Francisco, California, United States",
+      "date_posted": "month",
+      "tier_boost": 1.0
     }
   ],
   "linkedin": [],
@@ -148,6 +206,8 @@
     {"company": "Linear",            "slug": "linear",        "tier_boost": 1.0},
     {"company": "Prefect",              "slug": "prefect",              "tier_boost": 1.0},
     {"company": "Physical Intelligence","slug": "physicalintelligence",  "tier_boost": 1.2},
-    {"company": "Serve Robotics",       "slug": "serverobotics",         "tier_boost": 1.0}
+    {"company": "Serve Robotics",       "slug": "serverobotics",         "tier_boost": 1.0},
+    {"company": "Apolink Communications","slug": "apolink",              "tier_boost": 1.0},
+    {"company": "Cobot",                 "slug": "cobot",                "tier_boost": 1.0}
   ]
 }

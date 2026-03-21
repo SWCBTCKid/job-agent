@@ -33,6 +33,8 @@
   {"name": "Zipline",                "ats": "greenhouse", "slug": "flyzipline",           "tier_boost": 1.1},
   {"name": "Nimble Robotics",        "ats": "greenhouse", "slug": "nimblerobotics",       "tier_boost": 1.0},
   {"name": "Intrinsic",              "ats": "greenhouse", "slug": "intrinsicrobotics",    "tier_boost": 1.0},
+  {"name": "Motional",               "ats": "greenhouse", "slug": "motional",             "tier_boost": 1.1},
+  {"name": "May Mobility",           "ats": "greenhouse", "slug": "maymobility",          "tier_boost": 1.0},
 
   {"name": "Tenstorrent",            "ats": "greenhouse", "slug": "tenstorrent",          "tier_boost": 1.2},
   {"name": "SambaNova Systems",      "ats": "greenhouse", "slug": "sambanovasystems",     "tier_boost": 1.1},
@@ -46,5 +48,27 @@
   {"name": "Joby Aviation",          "ats": "greenhouse", "slug": "jobyaviation",         "tier_boost": 1.2},
   {"name": "Rivian",                 "ats": "workday",    "slug": "rivian",               "tier_boost": 1.1},
   {"name": "Lucid Motors",           "ats": "workday",    "slug": "lucidmotors",          "tier_boost": 1.0},
-  {"name": "Cruise",                 "ats": "greenhouse", "slug": "cruise",               "tier_boost": 1.1}
+  {"name": "Cruise",                 "ats": "greenhouse", "slug": "cruise",               "tier_boost": 1.1},
+
+  {"name": "Pure Storage",           "ats": "greenhouse", "slug": "purestorage",          "tier_boost": 1.0},
+  {"name": "Trackonomy Systems",     "ats": "greenhouse", "slug": "trackonomysystems",    "tier_boost": 1.0},
+  {"name": "Roboforce",              "ats": "greenhouse", "slug": "roboforce",            "tier_boost": 1.1},
+  {"name": "Oklo",                   "ats": "greenhouse", "slug": "oklo",                 "tier_boost": 1.0},
+  {"name": "Muon Space",             "ats": "greenhouse", "slug": "muonspace",            "tier_boost": 1.0},
+  {"name": "Astranis",               "ats": "greenhouse", "slug": "astranis",             "tier_boost": 1.1},
+  {"name": "Planet Labs",            "ats": "greenhouse", "slug": "planetlabs",           "tier_boost": 1.0},
+  {"name": "Rocket Lab",             "ats": "greenhouse", "slug": "rocketlab",            "tier_boost": 1.1},
+  {"name": "Capella Space",          "ats": "greenhouse", "slug": "capellaspace",         "tier_boost": 1.0},
+  {"name": "Kairos Power",           "ats": "greenhouse", "slug": "kairospower",          "tier_boost": 1.0},
+  {"name": "Stafl Systems",          "ats": "greenhouse", "slug": "staflsystems",         "tier_boost": 1.0},
+  {"name": "Alten Technology USA",   "ats": "greenhouse", "slug": "altentechnologyusa",   "tier_boost": 1.0},
+
+  {"name": "Apolink Communications", "ats": "ashby",      "slug": "apolink",              "tier_boost": 1.0},
+  {"name": "Cobot",                  "ats": "ashby",      "slug": "cobot",                "tier_boost": 1.0},
+
+  {"name": "Broadcom",               "ats": "workday",    "slug": "broadcom",             "tier_boost": 1.0},
+  {"name": "Qualcomm",               "ats": "workday",    "slug": "qualcomm",             "tier_boost": 1.1},
+  {"name": "Cadence Design Systems", "ats": "workday",    "slug": "cadence",              "tier_boost": 1.0},
+  {"name": "Marvell Technology",     "ats": "workday",    "slug": "marvell",              "tier_boost": 1.0},
+  {"name": "General Motors",         "ats": "workday",    "slug": "generalmotors",        "tier_boost": 1.0}
 ]
