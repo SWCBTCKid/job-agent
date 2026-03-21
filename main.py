@@ -103,17 +103,19 @@ def requires_us_citizenship(posting: JobPosting) -> bool:
     return any(re.search(pattern, text) for pattern in patterns)
 
 
-NON_ENGINEERING_TITLE_PATTERNS = [
+# Default role-exclude patterns used when a profile has no filters configured.
+# These are the original SWE-focused exclusions for the gpu_autonomous profile.
+_DEFAULT_ROLE_EXCLUDE_PATTERNS: list[str] = [
     r"\bprogram manager\b",
     r"\bproduct manager\b",
     r"\bproject manager\b",
-    r"\bsolutions architect\b",      # pre-sales; solutions engineer is fine
+    r"\bsolutions architect\b",
     r"\bdata scientist\b",
     r"\bresearch scientist\b",
-    r"\bstaff\b",                    # no staff-level roles
+    r"\bstaff\b",
     r"\bjunior\b",
     r"\bentry.?level\b",
-    r"engineer\s+i\b",               # "Engineer I" but not "Engineer II/III"
+    r"engineer\s+i\b",
     r"\bintern\b",
     r"\brecruiter\b",
     r"\brecruiting\b",
@@ -130,12 +132,24 @@ NON_ENGINEERING_TITLE_PATTERNS = [
     r"\bdesign manager\b",
 ]
 
-_NON_ENG_RE = re.compile("|".join(NON_ENGINEERING_TITLE_PATTERNS), re.IGNORECASE)
+_DEFAULT_ROLE_EXCLUDE_RE = re.compile(
+    "|".join(_DEFAULT_ROLE_EXCLUDE_PATTERNS), re.IGNORECASE
+)
 
 
-def is_engineering_role(posting: JobPosting) -> bool:
-    """Return False for PM, data science, recruiting, and other non-engineering roles."""
-    return _NON_ENG_RE.search(posting.title) is None
+def passes_role_filter(posting: JobPosting, exclude_patterns: list[str] | None = None) -> bool:
+    """Return True if this posting's title is not excluded by the profile's role filter.
+
+    exclude_patterns comes from profile filters_json["role_exclude_patterns"].
+    Empty list = no exclusions (allow everything).
+    None = fall back to _DEFAULT_ROLE_EXCLUDE_PATTERNS.
+    """
+    if exclude_patterns is None:
+        return _DEFAULT_ROLE_EXCLUDE_RE.search(posting.title) is None
+    if not exclude_patterns:
+        return True
+    pat = re.compile("|".join(exclude_patterns), re.IGNORECASE)
+    return pat.search(posting.title) is None
 
 
 def role_family_for(posting: JobPosting) -> str:
@@ -213,7 +227,8 @@ def import_profile(profile_id: str, db: JobDB) -> None:
     """Import a profile from profiles/{profile_id}/companies.json + sources.json."""
     profile_dir = PROFILES_DIR / profile_id
     companies_path = profile_dir / "companies.json"
-    sources_path = profile_dir / "sources.json"
+    sources_path   = profile_dir / "sources.json"
+    filters_path   = profile_dir / "filters.json"
 
     if not profile_dir.exists():
         print(f"Error: profiles/{profile_id}/ directory not found")
@@ -222,6 +237,7 @@ def import_profile(profile_id: str, db: JobDB) -> None:
 
     companies: list[dict] = []
     sources: dict = {}
+    filters: dict = {}
 
     if companies_path.exists():
         companies = json.loads(companies_path.read_text(encoding="utf-8"))
@@ -232,6 +248,11 @@ def import_profile(profile_id: str, db: JobDB) -> None:
         sources = json.loads(sources_path.read_text(encoding="utf-8"))
     else:
         print(f"Warning: {sources_path} not found — no sources will be imported")
+
+    if filters_path.exists():
+        filters = json.loads(filters_path.read_text(encoding="utf-8"))
+    else:
+        print(f"Note: {filters_path} not found — profile will use system defaults for role/scoring filters")
 
     # Create profile if new, otherwise just re-seed (add without replacing)
     if not db.profile_exists(profile_id):
@@ -244,9 +265,12 @@ def import_profile(profile_id: str, db: JobDB) -> None:
 
     db.seed_profile_companies(profile_id, companies)
     db.seed_profile_sources(profile_id, sources)
+    if filters:
+        db.set_profile_filters(profile_id, filters)
 
     n_sources = sum(len(v) for v in sources.values())
-    print(f"Profile '{profile_id}' imported — {len(companies)} companies, {n_sources} sources")
+    filters_note = f", filters loaded" if filters else ""
+    print(f"Profile '{profile_id}' imported — {len(companies)} companies, {n_sources} sources{filters_note}")
 
 
 def cmd_list_profiles(db: JobDB) -> None:
@@ -432,7 +456,15 @@ def build_scrapers(db: JobDB, profile_id: str) -> list:
         EightfoldScraper(_sources_of("eightfold")),
         TheirStackScraper(SETTINGS.theirstack_api_key, _sources_of("theirstack")),
         SerpScraper(SETTINGS.serpapi_key, _sources_of("serp")),
-        BuiltinSFScraper(tier_boost=1.0),
+        BuiltinSFScraper(
+            tier_boost=1.0,
+            search_terms=next(
+                (s["terms"] for s in _sources_of("builtinsf") if "terms" in s), None
+            ),
+            search_url=next(
+                (s["search_url"] for s in _sources_of("builtinsf") if "search_url" in s), None
+            ),
+        ),
         HNScraper(),
         WorkdayScraper(_sources_of("workday")),
         WellfoundScraper(_sources_of("wellfound")),
@@ -510,7 +542,7 @@ async def run_agent(dry_run: bool = False) -> dict:
 
         filtered_role = []
         for p in filtered_salary:
-            if not is_engineering_role(p):
+            if not passes_role_filter(p):  # uses default SWE patterns for legacy flow
                 p.reason_codes.append("REJECT_NON_ENGINEERING_ROLE")
                 continue
             filtered_role.append(p)
@@ -606,14 +638,27 @@ async def run_resume_flow(
                 print(f"  {msg}")
                 LOGGER.warning(msg)
 
-    # Hard filters (same logic as legacy flow)
+    # ── Load profile filters — all hard-filter behaviour is config-driven ────
+    profile_filters = db.get_profile_filters(profile_id)
+    role_exclude    = profile_filters.get("role_exclude_patterns", None)  # None = use defaults
+    role_zero       = profile_filters.get("role_zero_patterns", None)     # None = use defaults
+    # CLI --level overrides profile default; profile default overrides system default
+    effective_levels = target_levels or profile_filters.get("target_levels", ["senior"])
+    effective_salary_floor = profile_filters.get("salary_floor", SETTINGS.salary_floor)
+    # Scoring config overrides — all optional; None = use hardcoded SWE defaults in build_scoring_config
+    profile_domain_tier1_extra = profile_filters.get("domain_tier1_extra", None)
+    profile_domain_tier2       = profile_filters.get("domain_tier2", None)
+    profile_domain_tier3       = profile_filters.get("domain_tier3", None)
+    profile_skill_buckets      = profile_filters.get("skill_buckets", None)
+
+    # Hard filters
     after_citizenship = [
         p for p in raw_postings
         if not requires_us_citizenship(p) and not requires_clearance(p)
     ]
     after_location = [p for p in after_citizenship if is_bay_area(p)]
-    after_salary   = [p for p in after_location if salary_gate(p, salary_table, SETTINGS.salary_floor)]
-    after_role     = [p for p in after_salary if is_engineering_role(p)]
+    after_salary   = [p for p in after_location if salary_gate(p, salary_table, effective_salary_floor)]
+    after_role     = [p for p in after_salary if passes_role_filter(p, role_exclude)]
 
     print(f"After hard filters:  {len(after_role)}  "
           f"(citizenship/clearance: -{len(raw_postings) - len(after_citizenship)}, "
@@ -633,8 +678,16 @@ async def run_resume_flow(
         ORIGINAL_CONFIG.source,
         ORIGINAL_CONFIG.to_dict(),
     )
-    # Generate Haiku-derived config for this resume
-    haiku_cfg = build_scoring_config(record, target_levels=target_levels)
+    # Generate Haiku-derived config for this resume — all scoring params from profile filters
+    haiku_cfg = build_scoring_config(
+        record,
+        target_levels=effective_levels,
+        role_zero_patterns=role_zero,
+        domain_tier1_extra=profile_domain_tier1_extra,
+        domain_tier2=profile_domain_tier2,
+        domain_tier3=profile_domain_tier3,
+        skill_buckets=profile_skill_buckets,
+    )
     db.store_scoring_config(haiku_cfg.config_id, haiku_cfg.label, haiku_cfg.source, haiku_cfg.to_dict())
     LOGGER.info("Scoring configs ready — original=%s  haiku=%s", ORIGINAL_CONFIG.config_id, haiku_cfg.config_id)
 
@@ -655,7 +708,13 @@ async def run_resume_flow(
           f"Above threshold ({SETTINGS.stage1_threshold}): {len(above_threshold)})")
 
     # Per-company health report — surfaces silent zero-yield failures
+    # Include companies from profile_companies (Greenhouse/Lever) + profile_sources (Workday/etc.)
     profile_companies = [c["name"] for c in db.get_profile_companies(profile_id)]
+    profile_sources = db.get_profile_sources(profile_id)
+    for s in profile_sources:
+        cname = s["config"].get("company") or s["config"].get("name")
+        if cname and cname not in profile_companies:
+            profile_companies.append(cname)
     _company_health_report(profile_companies, raw_postings, after_role, stage1_scored, SETTINGS.stage1_threshold)
 
     if not above_threshold:

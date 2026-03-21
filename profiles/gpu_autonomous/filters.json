@@ -1,0 +1,48 @@
+{
+  "role_exclude_patterns": [
+    "\\bprogram manager\\b",
+    "\\bproduct manager\\b",
+    "\\bproject manager\\b",
+    "\\bsolutions architect\\b",
+    "\\bdata scientist\\b",
+    "\\bresearch scientist\\b",
+    "\\bstaff\\b",
+    "\\bjunior\\b",
+    "\\bentry.?level\\b",
+    "engineer\\s+i\\b",
+    "\\bintern\\b",
+    "\\brecruiter\\b",
+    "\\brecruiting\\b",
+    "\\bpeople ops\\b",
+    "\\bhuman resources\\b",
+    "\\bfinance\\b",
+    "\\baccounting\\b",
+    "\\blegal counsel\\b",
+    "\\bmarketing manager\\b",
+    "\\bsales manager\\b",
+    "\\baccount executive\\b",
+    "\\bcustomer success\\b",
+    "\\btechnical writer\\b",
+    "\\bdesign manager\\b"
+  ],
+  "role_zero_patterns": [],
+  "target_levels": ["senior"],
+  "salary_floor": 150000,
+  "domain_tier1_extra": [],
+  "domain_tier2": [
+    "infrastructure",
+    "developer tooling",
+    "backend systems",
+    "cloud infrastructure",
+    "devops",
+    "platform engineering",
+    "developer productivity"
+  ],
+  "domain_tier3": [
+    "machine learning infrastructure",
+    "mlops",
+    "ml platform",
+    "ai infrastructure"
+  ],
+  "skill_buckets": null
+}

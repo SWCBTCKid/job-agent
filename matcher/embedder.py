@@ -98,20 +98,25 @@ class ScoringConfig:
     query_expansion: dict[str, str]              # internal term → industry keywords
     domain_tiers:    dict[str, list[str]]        # tier1 / tier2 / tier3 keyword lists
     skill_groups:    dict[str, list[str]]        # group_name → keyword patterns
-    raw_skill_regex: bool       = True            # False → re.escape patterns before compile
-    target_levels:   list[str]  = field(default_factory=lambda: ["senior"])
+    raw_skill_regex:    bool       = True            # False → re.escape patterns before compile
+    target_levels:      list[str]  = field(default_factory=lambda: ["senior"])
     # valid values: "junior" | "mid" | "senior" | "staff" | "manager" | "any"
+    role_zero_patterns: list[str]  = field(default_factory=list)
+    # Titles matching any pattern get Stage 1 multiplier=0.
+    # Empty list = no zero-check (allow all roles).
+    # None-equivalent behaviour: use the profile's own list, not hardcoded defaults.
 
     def to_dict(self) -> dict:
         return {
-            "config_id":       self.config_id,
-            "label":           self.label,
-            "source":          self.source,
-            "query_expansion": self.query_expansion,
-            "domain_tiers":    self.domain_tiers,
-            "skill_groups":    self.skill_groups,
-            "raw_skill_regex": self.raw_skill_regex,
-            "target_levels":   self.target_levels,
+            "config_id":          self.config_id,
+            "label":              self.label,
+            "source":             self.source,
+            "query_expansion":    self.query_expansion,
+            "domain_tiers":       self.domain_tiers,
+            "skill_groups":       self.skill_groups,
+            "raw_skill_regex":    self.raw_skill_regex,
+            "target_levels":      self.target_levels,
+            "role_zero_patterns": self.role_zero_patterns,
         }
 
     @staticmethod
@@ -125,6 +130,7 @@ class ScoringConfig:
             skill_groups=d.get("skill_groups", {}),
             raw_skill_regex=d.get("raw_skill_regex", True),
             target_levels=d.get("target_levels", ["senior"]),
+            role_zero_patterns=d.get("role_zero_patterns", []),
         )
 
 
@@ -193,6 +199,19 @@ _DOMAIN_TIER1, _DOMAIN_TIER2, _DOMAIN_TIER3 = _compile_domain_patterns(_DEFAULT_
 # (defined here — after _DEFAULT_DOMAIN_TIERS and _SKILL_GROUPS are in scope)
 # ---------------------------------------------------------------------------
 
+# Role zero patterns for the original SWE-focused config
+_ORIGINAL_ROLE_ZERO_PATTERNS: list[str] = [
+    r"\b(recruiter|recruiting|talent acquisition|people ops|human resources)\b",
+    r"\bhr\b",
+    r"\bfinance\b",
+    r"\baccounting\b",
+    r"\blegal counsel\b",
+    r"\bmarketing manager\b",
+    r"\bsales manager\b",
+    r"\baccount executive\b",
+    r"\bcustomer success\b",
+]
+
 # Original hardcoded config — Sodiq/Meta baseline, stored in DB for comparison
 ORIGINAL_CONFIG = ScoringConfig(
     config_id="original",
@@ -203,6 +222,7 @@ ORIGINAL_CONFIG = ScoringConfig(
     skill_groups={k: list(v) for k, v in _SKILL_GROUPS.items()},
     raw_skill_regex=True,
     target_levels=["senior"],
+    role_zero_patterns=list(_ORIGINAL_ROLE_ZERO_PATTERNS),
 )
 
 # Bucket map for auto-classifying Haiku-extracted skills into groups
@@ -246,31 +266,44 @@ def _auto_bucket_skills(skills: list[str]) -> dict[str, list[str]]:
     return groups if groups else {"other": skills}
 
 
-def build_scoring_config(record: "ResumeRecord", target_levels: list[str] | None = None) -> ScoringConfig:  # type: ignore[name-defined]
+def build_scoring_config(
+    record: "ResumeRecord",  # type: ignore[name-defined]
+    target_levels: list[str] | None = None,
+    role_zero_patterns: list[str] | None = None,
+    domain_tier1_extra: list[str] | None = None,
+    domain_tier2: list[str] | None = None,
+    domain_tier3: list[str] | None = None,
+    skill_buckets: dict[str, list[str]] | None = None,
+) -> ScoringConfig:
     """Generate a per-candidate ScoringConfig from a Haiku-analysed ResumeRecord.
 
-    domain_tiers.tier1  = candidate's own target domains (from Haiku)
-    domain_tiers.tier2  = universal infra/backend fallback terms
-    domain_tiers.tier3  = ML/data terms (lowest signal for most IC engineers)
+    domain_tiers.tier1  = candidate's own target domains (from Haiku) + profile domain_tier1_extra
+    domain_tiers.tier2  = from profile domain_tier2 (falls back to SWE defaults if not provided)
+    domain_tiers.tier3  = from profile domain_tier3 (falls back to SWE defaults if not provided)
     query_expansion     = internal terminology translations (from Haiku)
-    skill_groups        = Haiku skills auto-bucketed into groups
+    skill_groups        = profile skill_buckets if provided, else Haiku skills auto-bucketed
+    role_zero_patterns  = from profile filters (empty = no zero-check)
     """
     kw          = record.keywords
     terminology = kw.get("terminology", {})
     domains     = kw.get("domains", [])
     skills      = kw.get("skills", [])
 
+    tier1 = domains + (domain_tier1_extra or [])
+
     domain_tiers: dict[str, list[str]] = {
-        "tier1": domains,
-        "tier2": [
+        "tier1": tier1,
+        "tier2": domain_tier2 if domain_tier2 is not None else [
             "infrastructure", "backend", "platform", "developer tooling",
             "cloud infrastructure", "devops", "developer productivity", "backend systems",
         ],
-        "tier3": [
+        "tier3": domain_tier3 if domain_tier3 is not None else [
             "machine learning infrastructure", "mlops", "ml platform",
             "ai infrastructure", "data engineering",
         ],
     }
+
+    groups = skill_buckets if skill_buckets is not None else _auto_bucket_skills(skills)
 
     return ScoringConfig(
         config_id=record.id,
@@ -278,9 +311,10 @@ def build_scoring_config(record: "ResumeRecord", target_levels: list[str] | None
         source="haiku",
         query_expansion=terminology,
         domain_tiers=domain_tiers,
-        skill_groups=_auto_bucket_skills(skills),
-        raw_skill_regex=False,   # Haiku strings get re.escaped before compile
+        skill_groups=groups,
+        raw_skill_regex=False,
         target_levels=target_levels or ["senior"],
+        role_zero_patterns=role_zero_patterns if role_zero_patterns is not None else [],
     )
 
 
@@ -355,9 +389,22 @@ def _classify_level(title: str) -> str:
     return "mid"
 
 
-def _role_multiplier(title: str, target_levels: list[str] | None = None) -> float:
-    if _ROLE_ZERO.search(title):
-        return 0.0
+def _role_multiplier(
+    title: str,
+    target_levels: list[str] | None = None,
+    role_zero_patterns: list[str] | None = None,
+) -> float:
+    # role_zero check — uses profile patterns when provided, hardcoded fallback otherwise
+    if role_zero_patterns is not None:
+        if role_zero_patterns:
+            zero_re = re.compile("|".join(role_zero_patterns), re.IGNORECASE)
+            if zero_re.search(title):
+                return 0.0
+        # empty list = no zero-check at all
+    else:
+        if _ROLE_ZERO.search(title):
+            return 0.0
+
     if _ROLE_PM.search(title):
         return 0.1
     if _ROLE_EM.search(title):
@@ -585,7 +632,7 @@ def stage1_select(
             + fresh     * 0.10
         )
 
-        role_mult = _role_multiplier(posting.title, cfg.target_levels)
+        role_mult = _role_multiplier(posting.title, cfg.target_levels, cfg.role_zero_patterns)
         penalty   = _anti_pattern_penalty(posting.description)
 
         # Keep penalty_multiplier field for downstream consumers (embedded-heavy flag)

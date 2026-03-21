@@ -1,0 +1,65 @@
+{
+  "role_exclude_patterns": [
+    "\\bsoftware engineer\\b",
+    "\\bbackend engineer\\b",
+    "\\bfrontend engineer\\b",
+    "\\bfull.?stack\\b",
+    "\\bml engineer\\b",
+    "\\bmachine learning engineer\\b",
+    "\\bdata engineer\\b",
+    "\\bdevops engineer\\b",
+    "\\bsre\\b",
+    "\\bsite reliability\\b",
+    "\\bplatform engineer\\b",
+    "\\bsystems engineer\\b",
+    "\\bembedded engineer\\b",
+    "\\bfirmware engineer\\b",
+    "\\bresearch scientist\\b",
+    "\\bdata scientist\\b",
+    "\\bproduct manager\\b",
+    "\\bprogram manager\\b",
+    "\\bproject manager\\b",
+    "\\bjunior\\b",
+    "\\bentry.?level\\b",
+    "\\bintern\\b",
+    "\\brecruiter\\b",
+    "\\btalent acquisition\\b",
+    "\\bsales manager\\b",
+    "\\baccount executive\\b",
+    "\\bcustomer success\\b",
+    "\\bmarketing manager\\b",
+    "\\bcommunications manager\\b",
+    "\\blegal counsel\\b"
+  ],
+  "role_zero_patterns": [],
+  "target_levels": ["senior", "mid"],
+  "salary_floor": 100000,
+  "domain_tier1_extra": [
+    "federal budget", "budget execution", "budget formulation", "ppbe",
+    "program budget", "cost analysis", "funding allocation", "reimbursable",
+    "financial planning and analysis", "fp&a", "operating plan",
+    "budget analyst", "financial analyst", "budget forecasting",
+    "government financial management", "federal program", "funding execution"
+  ],
+  "domain_tier2": [
+    "financial planning", "budget management", "financial analysis",
+    "cost analysis", "financial reporting", "forecasting", "variance analysis",
+    "financial operations", "revenue operations", "accounts payable",
+    "accounts receivable", "general ledger", "billing", "financial systems",
+    "financial modeling", "business finance", "corporate finance",
+    "financial management", "fiscal", "appropriations", "procurement finance"
+  ],
+  "domain_tier3": [
+    "operations", "analytics", "business intelligence", "data analysis",
+    "management consulting", "strategy", "business operations",
+    "program operations", "process improvement", "compliance"
+  ],
+  "skill_buckets": {
+    "erp_systems":       ["SAP", "Oracle Financials", "Workday Financials", "NetSuite", "Dynamics 365", "PeopleSoft", "Costpoint"],
+    "reporting_tools":   ["Power BI", "Tableau", "BOBJ", "Business Objects", "Hyperion", "Adaptive Insights", "Anaplan", "Excel"],
+    "finance_domain":    ["FP&A", "PPBE", "budget", "forecast", "variance", "reconciliation", "GAAP", "cost accounting", "fund accounting"],
+    "program_mgmt":      ["program management", "cross-functional", "stakeholder", "compliance", "financial reporting", "operating plan"],
+    "data_tools":        ["SQL", "Python", "pandas", "data analysis", "business intelligence", "Tableau", "Power BI"],
+    "federal_finance":   ["federal", "government contractor", "reimbursable", "funding allocation", "cost reports", "SAP BW", "BOBJ", "appropriations"]
+  }
+}

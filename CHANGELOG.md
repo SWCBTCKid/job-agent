@@ -2,6 +2,54 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026-03-21] - Full Profile-Driven Scoring — tier2/tier3/skill_buckets decoupled
+
+### Problem
+The March 15 work decoupled `domain_tier1` and `role_zero_patterns` from the resume, but
+`domain_tier2`, `domain_tier3`, and `_auto_bucket_skills` skill groups were still hardcoded
+SWE defaults in `build_scoring_config`. Any non-engineering candidate (e.g. finance/budget
+analyst) got incorrect tier2 boosts (`infrastructure`, `devops`) and their skills were
+auto-bucketed into irrelevant groups (languages, systems, distributed, reliability) producing
+near-zero skill overlap scores.
+
+### Added
+- **`profiles/<id>/filters.json`** — new per-profile file carrying all scoring and filtering
+  config in one place. Loaded by `--import-profile` and written to `search_profiles.filters_json`.
+  Supported keys:
+  - `role_exclude_patterns` — hard-reject titles before Stage 1
+  - `role_zero_patterns`    — Stage 1 multiplier=0 (empty list = allow all)
+  - `target_levels`         — level filter for Stage 1 multiplier
+  - `salary_floor`          — per-profile salary floor override
+  - `domain_tier1_extra`    — additional tier1 terms merged with Haiku-extracted domains
+  - `domain_tier2`          — replaces hardcoded SWE tier2 fallback
+  - `domain_tier3`          — replaces hardcoded SWE tier3 fallback
+  - `skill_buckets`         — replaces `_auto_bucket_skills` output (null = use auto-bucketing)
+- **`profiles/finance_govt/filters.json`** — finance/budget analyst config:
+  - Excludes engineering role titles, allows finance/accounting titles
+  - tier1_extra: federal budget, PPBE, FP&A, funding execution terms
+  - tier2: financial planning, budget management, FP&A, billing, GL, etc.
+  - tier3: operations, analytics, business intelligence
+  - skill_buckets: erp_systems, reporting_tools, finance_domain, program_mgmt, data_tools, federal_finance
+- **`profiles/gpu_autonomous/filters.json`** — SWE config made explicit (was previously the
+  system default); `role_zero_patterns: []` since `role_exclude_patterns` covers all exclusions
+
+### Changed
+- **`matcher/embedder.py`** `build_scoring_config` — accepts 4 new optional params:
+  `domain_tier1_extra`, `domain_tier2`, `domain_tier3`, `skill_buckets`. When provided they
+  override the hardcoded SWE fallbacks. When `None`, fallbacks are unchanged (backwards compat).
+- **`main.py`** `run_resume_flow` — reads all 4 new keys from `profile_filters` and passes
+  them to `build_scoring_config`. Nothing hardcoded in the flow.
+- **`main.py`** `import_profile` — loads `filters.json` if present and calls
+  `db.set_profile_filters`. Prints `filters loaded` confirmation.
+
+### Result
+Running `finance_govt` profile now produces:
+- domain tier1: Haiku-extracted domains + profile `domain_tier1_extra` (PPBE, FP&A, etc.)
+- domain tier2: finance-specific fallback terms (no more `infrastructure`/`devops` boosts)
+- skill groups: erp_systems / reporting_tools / finance_domain / program_mgmt / data_tools / federal_finance
+
+---
+
 ## [2026-03-15] - Decoupled Stage 1 Scorer — per-candidate ScoringConfig
 
 ### Added
