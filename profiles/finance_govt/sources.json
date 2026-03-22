@@ -1,50 +1,29 @@
 {
   "workday": [
-    {
-      "company": "Booz Allen Hamilton",
-      "url": "https://boozallen.wd1.myworkdayjobs.com/EXT",
-      "tier_boost": 1.3
-    },
-    {
-      "company": "Leidos",
-      "url": "https://leidos.wd5.myworkdayjobs.com/External",
-      "tier_boost": 1.3
-    },
-    {
-      "company": "SAIC",
-      "url": "https://saic.wd5.myworkdayjobs.com/SAIC",
-      "tier_boost": 1.2
-    },
-    {
-      "company": "Salesforce",
-      "url": "https://salesforce.wd12.myworkdayjobs.com/External_Career_Site",
-      "tier_boost": 1.1
-    },
-    {
-      "company": "Intuit",
-      "url": "https://jobs.intuit.com",
-      "tier_boost": 1.1
-    },
-    {
-      "company": "Adobe",
-      "url": "https://adobe.wd5.myworkdayjobs.com/external_experienced",
-      "tier_boost": 1.0
-    },
-    {
-      "company": "Cisco",
-      "url": "https://cisco.wd5.myworkdayjobs.com/External",
-      "tier_boost": 1.0
-    },
-    {
-      "company": "Lockheed Martin",
-      "url": "https://lmt.wd1.myworkdayjobs.com/LMI_Jobs",
-      "tier_boost": 1.1
-    },
-    {
-      "company": "Northrop Grumman",
-      "url": "https://northropgrumman.wd1.myworkdayjobs.com/NGCCareers",
-      "tier_boost": 1.1
-    }
+    {"company": "Booz Allen Hamilton", "url": "https://boozallen.wd1.myworkdayjobs.com/EXT",                          "tier_boost": 1.3},
+    {"company": "Leidos",              "url": "https://leidos.wd5.myworkdayjobs.com/External",                        "tier_boost": 1.3},
+    {"company": "SAIC",                "url": "https://saic.wd5.myworkdayjobs.com/SAIC",                              "tier_boost": 1.2},
+    {"company": "Peraton",             "url": "https://peraton.wd5.myworkdayjobs.com/peraton_ext",                    "tier_boost": 1.2},
+    {"company": "KBR",                 "url": "https://kbr.wd5.myworkdayjobs.com/KBR_Careers",                       "tier_boost": 1.2},
+    {"company": "Jacobs",              "url": "https://jacobs.wd5.myworkdayjobs.com/Careers",                        "tier_boost": 1.2},
+    {"company": "Parsons",             "url": "https://parsons.wd5.myworkdayjobs.com/search",                        "tier_boost": 1.2},
+    {"company": "L3Harris",            "url": "https://l3harris.wd5.myworkdayjobs.com/External",                     "tier_boost": 1.2},
+    {"company": "BAE Systems",         "url": "https://baesystems.wd3.myworkdayjobs.com/BAE",                        "tier_boost": 1.2},
+    {"company": "RTX (Raytheon)",      "url": "https://rtx.wd1.myworkdayjobs.com/RTX",                               "tier_boost": 1.2},
+    {"company": "Maxar Technologies",  "url": "https://maxar.wd5.myworkdayjobs.com/maxar",                           "tier_boost": 1.1},
+
+    {"company": "Salesforce",          "url": "https://salesforce.wd12.myworkdayjobs.com/External_Career_Site",      "tier_boost": 1.1},
+    {"company": "Intuit",              "url": "https://intuit.wd5.myworkdayjobs.com/Intuit_Careers",                 "tier_boost": 1.2},
+    {"company": "Adobe",               "url": "https://adobe.wd5.myworkdayjobs.com/external_experienced",            "tier_boost": 1.0},
+    {"company": "Cisco",               "url": "https://cisco.wd1.myworkdayjobs.com/External",                        "tier_boost": 1.0},
+    {"company": "Lockheed Martin",     "url": "https://lmt.wd1.myworkdayjobs.com/LMI_Jobs",                         "tier_boost": 1.1},
+    {"company": "Northrop Grumman",    "url": "https://northropgrumman.wd1.myworkdayjobs.com/NGCCareers",            "tier_boost": 1.1},
+
+    {"company": "ServiceNow",          "url": "https://servicenow.wd5.myworkdayjobs.com/External",                   "tier_boost": 1.1},
+    {"company": "Workday",             "url": "https://workday.wd5.myworkdayjobs.com/Workday",                       "tier_boost": 1.1},
+    {"company": "Zoom",                "url": "https://zoom.wd5.myworkdayjobs.com/Zoom",                             "tier_boost": 1.0},
+    {"company": "Palo Alto Networks",  "url": "https://paloaltonetworks.wd1.myworkdayjobs.com/External",             "tier_boost": 1.0},
+    {"company": "Lam Research",        "url": "https://lamresearch.wd1.myworkdayjobs.com/Careers",                  "tier_boost": 1.0}
   ],
   "serp": [
     {
@@ -84,7 +63,8 @@
       "company_domains": [
         "boozallen.com", "leidos.com", "saic.com", "peraton.com",
         "kbr.com", "amentum.com", "icfi.com", "mitre.org",
-        "jacobs.com", "parsons.com"
+        "jacobs.com", "parsons.com", "l3harris.com", "baesystems.com",
+        "rtx.com", "maxar.com"
       ],
       "job_title_pattern_or": "financial analyst|budget analyst|cost analyst|FP&A|financial planning|program analyst|financial manager",
       "job_location_pattern_or": "San Francisco|Bay Area|Mountain View|Palo Alto|Sunnyvale|San Jose|Moffett Field|Santa Clara",
@@ -96,13 +76,26 @@
       "label": "Fintech and tech finance roles",
       "company_domains": [
         "stripe.com", "brex.com", "ramp.com", "rippling.com",
-        "gusto.com", "chime.com", "plaid.com", "carta.com"
+        "gusto.com", "chime.com", "plaid.com", "carta.com",
+        "marqeta.com", "planetlabs.com"
       ],
       "job_title_pattern_or": "financial analyst|FP&A|budget analyst|finance manager|financial planning|cost analyst",
       "job_location_pattern_or": "San Francisco|Bay Area|Remote",
       "max_age_days": 14,
       "limit": 25,
       "tier_boost": 1.1
+    },
+    {
+      "label": "Bay Area tech FP&A",
+      "company_domains": [
+        "servicenow.com", "workday.com", "zoom.us", "paloaltonetworks.com",
+        "lamresearch.com", "intuit.com", "salesforce.com"
+      ],
+      "job_title_pattern_or": "financial analyst|FP&A|budget analyst|finance manager|financial planning|senior analyst finance",
+      "job_location_pattern_or": "San Francisco|Bay Area|Mountain View|Sunnyvale|San Jose|Santa Clara|Pleasanton|Belmont",
+      "max_age_days": 14,
+      "limit": 25,
+      "tier_boost": 1.0
     }
   ],
   "linkedin": [],

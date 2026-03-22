@@ -10,5 +10,13 @@
   {"name": "Scale AI",          "ats": "greenhouse", "slug": "scaleai",           "tier_boost": 1.0},
   {"name": "Figma",             "ats": "greenhouse", "slug": "figma",             "tier_boost": 1.0},
   {"name": "Notion",            "ats": "ashby",      "slug": "notion",            "tier_boost": 1.0},
-  {"name": "Databricks",        "ats": "greenhouse", "slug": "databricks",        "tier_boost": 1.0}
+  {"name": "Databricks",        "ats": "greenhouse", "slug": "databricks",        "tier_boost": 1.0},
+
+  {"name": "Gusto",             "ats": "greenhouse", "slug": "gusto",             "tier_boost": 1.2},
+  {"name": "Carta",             "ats": "greenhouse", "slug": "carta",             "tier_boost": 1.1},
+  {"name": "Chime",             "ats": "greenhouse", "slug": "chime",             "tier_boost": 1.1},
+  {"name": "Marqeta",           "ats": "greenhouse", "slug": "marqeta",           "tier_boost": 1.0},
+  {"name": "Plaid",             "ats": "greenhouse", "slug": "plaid",             "tier_boost": 1.1},
+
+  {"name": "Planet Labs",       "ats": "greenhouse", "slug": "planetlabs",        "tier_boost": 1.2}
 ]
